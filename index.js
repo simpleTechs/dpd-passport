@@ -107,6 +107,46 @@ AuthResource.prototype.initPassport = function() {
     this.initialized = true;
 }
 
+var sendResponse = function(ctx, err, session) {
+    if(ctx.req.session.redirectURL) {
+        var redirectURL = ctx.req.session.redirectURL;
+        // delete search so that query is used
+        delete redirectURL.search;
+
+        // make sure query is inited
+        redirectURL.query = redirectURL.query || {};
+
+        if(err) {
+            redirectURL.query.success = false;
+            redirectURL.query.error = err;
+        } else {
+            // append user + session id to the redirect url
+            redirectURL.query.success = true;
+            redirectURL.query.sid = session.id;
+            redirectURL.query.uid = session.uid;
+        }
+
+        var redirectURLString = '';
+        try {
+            redirectURLString = url.format(redirectURL);
+        } catch(ex) {
+            console.warn('An error happened while formatting the redirectURL', ex);
+        }
+
+        // redirect the user
+        ctx.res.setHeader("Location", redirectURLString);
+        ctx.res.statusCode = 302;
+
+        ctx.done(null, 'This page has moved to ' + redirectURLString);
+    } else {
+        if(err) {
+            ctx.res.statusCode = 401;
+            return ctx.done('bad credentials');
+        } else {
+            ctx.done(err, session);
+        }
+    }
+}
 AuthResource.prototype.handle = function (ctx, next) {
     // globally handle logout
     if(ctx.url === '/logout') {
@@ -119,6 +159,21 @@ AuthResource.prototype.handle = function (ctx, next) {
         // filters out all empty parts
         return p; 
     });
+
+    if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
+        try {
+            this.regEx = this.regEx || new RegExp(this.config.allowedRedirectURLs, 'i');
+
+            if(ctx.query.redirectURL.match(this.regEx)) {
+                // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
+                ctx.req.session.redirectURL = url.parse(ctx.query.redirectURL, true);
+            } else {
+                console.log(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
+            }
+        } catch(ex) {
+            console.log('Error parsing RedirectURL Regex!', ex);
+        }
+    }
 
     // determine requested module
     var requestedModule, options = { session: false };
@@ -154,17 +209,17 @@ AuthResource.prototype.handle = function (ctx, next) {
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
             if (err || !user) {
                 console.log('passport reported error: ', err, user, info);
-                ctx.res.statusCode = 401;
-                return ctx.done('bad credentials');
+                return sendResponse(ctx, 'bad credentials');
             }
 
-            ctx.session.set({path: this.path, uid: user.id}).save(ctx.done);
-            return;
+            ctx.session.set({path: this.path, uid: user.id}).save(function(err, session) {
+                return sendResponse(ctx, err, session);
+            });
         })(ctx.req, ctx.res);
     } else {
         // nothing matched, sorry
-        ctx.res.statusCode = 401;
-        return ctx.done('bad credentials');
+        console.log('no module found: ', parts[0]);
+        return sendResponse(ctx, 'bad credentials');
     }
 };
 
@@ -177,6 +232,10 @@ AuthResource.basicDashboard = {
     name        : 'baseURL',
     type        : 'text',
     description : 'Specify the Base URL of your site (http://www.your-page.com/) that is used for callbacks. *Required when using any OAuth Login!* Defaults to env variable DPD_PASSPORT_BASEURL.'
+  },{
+    name        : 'allowedRedirectURLs',
+    type        : 'text',
+    description : 'Specify a regular expression for which redirect URLs you want to allow. Supply as JS-Regex: "^http://www\.your-page.com/.*$", matching is always done case-insensitive. Defaults to "" (i.e. NO redirects will be allowed!)'
   },{
     name        : 'allowLocal',
     type        : 'checkbox',

@@ -3,9 +3,9 @@
 This custom resource type allows you to authorize your users using the powerful [Passport](http://passportjs.org).
 Currently, the following methods are supported for authentification:
 
-* local (i.e. username + password)
-* Twitter (using Api v1.1)
-* Facebook (using OAuth)
+* **local** (i.e. username + password)
+* **Twitter** (using Api v1.1)
+* **Facebook** (using OAuth)
 
 Others can be implemented easily if Passport supports them.
 
@@ -14,7 +14,7 @@ Others can be implemented easily if Passport supports them.
 * deployd (you'd have guessed that, probably :-))
 * User-Collection named `users` with at least these custom fields:
 ```json
-    "socialAccount": {
+    ["socialAccount": {
         "name": "socialAccount",
         "type": "string",
         "typeLabel": "string",
@@ -45,7 +45,7 @@ Others can be implemented easily if Passport supports them.
         "required": false,
         "id": "name",
         "order": 3
-    }
+    }]
 ```
 
 ### Installation
@@ -64,6 +64,19 @@ Note: You may supply the baseURL (your website's root) via the environment varia
 
 Point your users to `/auth/{login,twitter,facebook}` to have them login (or signup) via the specified module.
 After that, Auth-Passport completely takes over and redirects the users according to the OAuth(2) flow.
+
+### Usage in Mobile Apps
+
+Auth-Passport was built with usage in mobile Apps in mind. From inside your mobile app, open a browser and point the user to your website's `/auth/{login,twitter,facebook}` endpoint. From there, Auth-Passport will take over and guide (i.e. redirect) your user through the different steps needed for each provider, until the user has authorized your app and logged in successfully.
+
+Now you can get hold of your user and his session, by specifying a `redirectURL` in the original request. After the login is done (no matter if it was successful or not), your user will be redirected to the specified URL.
+Supply some app-specific URL (see your platform's SDK on how that looks) and catch the response in your app.
+Auth-Passport will supply the following information:
+
+* **sid** (String) Session ID in deployd, send this in every subsequent request
+* **uid** (String) User ID of the user that just logged in
+* **success** (Bool) `true`, if login was successfull
+* **error** (String) contains the error message in case of an error
 
 ### Credits
 
