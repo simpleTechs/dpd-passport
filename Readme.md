@@ -9,6 +9,45 @@ Currently, the following methods are supported for authentification:
 
 Others can be implemented easily if Passport supports them.
 
+### Requirements
+
+* deployd (you'd have guessed that, probably :-))
+* User-Collection named `users` with at least these custom fields:
+```json
+    "socialAccount": {
+        "name": "socialAccount",
+        "type": "string",
+        "typeLabel": "string",
+        "required": false,
+        "id": "socialAccount",
+        "order": 0
+    },
+    "socialAccountId": {
+        "name": "socialAccountId",
+        "type": "string",
+        "typeLabel": "string",
+        "required": false,
+        "id": "socialAccountId",
+        "order": 1
+    },
+    "profile": {
+        "name": "profile",
+        "type": "object",
+        "typeLabel": "object",
+        "required": false,
+        "id": "profile",
+        "order": 2
+    },
+    "name": {
+        "name": "name",
+        "type": "string",
+        "typeLabel": "string",
+        "required": false,
+        "id": "name",
+        "order": 3
+    }
+```
+
 ### Installation
 
 In your app's root directory, type `npm install dpd-passport` into the command line or [download the source](https://bitbucket.org/simpletechs/dpd-passport). This should create a `dpd-passport` directory in your app's `node_modules` directory.
@@ -28,6 +67,6 @@ After that, Auth-Passport completely takes over and redirects the users accordin
 
 ### Credits
 
-We'd like to thank Passport for building this amzing auth-framework!
+We'd like to thank Passport for building this amazing auth-framework!
 
 Auth-Passport is the work of [simpleTechs.net](https://www.simpletechs.net)
