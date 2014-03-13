@@ -19,6 +19,8 @@ See [Installing Modules](http://docs.deployd.com/docs/using-modules/installing-m
 
 Open your Dashboard and add the new Passport-Auth Resource. Then configure which modules you want to allow for your users and supply the required information for each module.
 
+Note: You may supply the baseURL (your website's root) via the environment variable `DPD_PASSPORT_BASEURL`. This is especially useful when you have a single codebase for testing + production environments.
+
 ### Usage
 
 Point your users to `/auth/{login,twitter,facebook}` to have them login (or signup) via the specified module.

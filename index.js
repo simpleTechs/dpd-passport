@@ -24,6 +24,7 @@ AuthResource.prototype.initPassport = function() {
 
     var config = this.config;
     config.SALT_LEN = config.SALT_LEN || 256;
+    config.baseURL = config.baseURL || process.env.DPD_PASSPORT_BASEURL;
 
     var passport = this.passport = require('passport');
     var userStore = process.server.createStore('users');
@@ -175,7 +176,7 @@ AuthResource.basicDashboard = {
   },{
     name        : 'baseURL',
     type        : 'text',
-    description : 'Specify the Base URL of your site (http://www.your-page.com/) that is used for callbacks. *Required when using any OAuth Login!*'
+    description : 'Specify the Base URL of your site (http://www.your-page.com/) that is used for callbacks. *Required when using any OAuth Login!* Defaults to env variable DPD_PASSPORT_BASEURL.'
   },{
     name        : 'allowLocal',
     type        : 'checkbox',
