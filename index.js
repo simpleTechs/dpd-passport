@@ -10,6 +10,14 @@ var Resource = require('deployd/lib/resource')
 
 function AuthResource() {
     Resource.apply(this, arguments);
+
+    // read and parse config
+    var config = this.config;
+    config.SALT_LEN = config.SALT_LEN || 256;
+    config.baseURL = config.baseURL || process.env.DPD_PASSPORT_BASEURL;
+
+    config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
+    config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
 }
 util.inherits(AuthResource, Resource);
 
@@ -22,12 +30,9 @@ AuthResource.prototype.clientGeneration = false;
 AuthResource.prototype.initPassport = function() {
     if(this.initialized) return;
 
-    var config = this.config;
-    config.SALT_LEN = config.SALT_LEN || 256;
-    config.baseURL = config.baseURL || process.env.DPD_PASSPORT_BASEURL;
-
-    var passport = this.passport = require('passport');
-    var userStore = process.server.createStore('users');
+    var config = this.config,
+        userStore = process.server.createStore('users'),
+        passport = (this.passport = require('passport'));
 
     // Will be called when socialLogins are done
     // Check for existing user and update
@@ -78,7 +83,7 @@ AuthResource.prototype.initPassport = function() {
         ));
     }
 
-    if(config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret) {
+    if(config.allowTwitter) {
         var cbURL = url.resolve(config.baseURL, this.path + '/twitter/callback');
 
         // console.log('Initializing Twitter Login, cb: %s', cbURL);
@@ -91,7 +96,7 @@ AuthResource.prototype.initPassport = function() {
         ));
     }
 
-    if(config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret) {
+    if(config.allowFacebook) {
         var cbURL = url.resolve(config.baseURL, this.path + '/facebook/callback');
 
         // console.log('Initializing Facebook Login, cb: %s', cbURL);
@@ -179,7 +184,7 @@ AuthResource.prototype.handle = function (ctx, next) {
     var requestedModule, options = { session: false };
     switch(parts[0]) {
         case 'login':
-            if(this.config.allowLocal) {
+            if(ctx.method === 'POST' && this.config.allowLocal) {
                 requestedModule = 'local';
             }
             break;
@@ -215,7 +220,7 @@ AuthResource.prototype.handle = function (ctx, next) {
             ctx.session.set({path: this.path, uid: user.id}).save(function(err, session) {
                 return sendResponse(ctx, err, session);
             });
-        })(ctx.req, ctx.res);
+        })(ctx.req, ctx.res, ctx.done);
     } else {
         // nothing matched, sorry
         console.log('no module found: ', parts[0]);
