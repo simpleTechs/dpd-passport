@@ -229,7 +229,7 @@ AuthResource.prototype.handle = function (ctx, next) {
                 return sendResponse(ctx, 'bad credentials');
             }
 
-            ctx.session.set({path: this.path, uid: user.id}).save(function(err, session) {
+            ctx.session.set({path: '/users', uid: user.id}).save(function(err, session) {
                 return sendResponse(ctx, err, session);
             });
         })(ctx.req, ctx.res, ctx.done);
