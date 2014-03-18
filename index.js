@@ -3,6 +3,7 @@ var Resource = require('deployd/lib/resource')
   , UserCollection = require('deployd/lib/resources/user-collection')
   , util = require('util')
   , url = require('url')
+  , debug = require('debug')('dpd-passport')
 
   , LocalStrategy = require('passport-local').Strategy
   , TwitterStrategy = require('passport-twitter').Strategy
@@ -38,7 +39,7 @@ AuthResource.prototype.initPassport = function() {
     // Check for existing user and update
     // or create new user and insert
     var socialAuthCallback = function(token, tokenSecret, profile, done) {
-        console.log('Login callback - profile:', profile);
+        debug('Login callback - profile:', profile);
         userStore.first({socialAccountId: profile.id}, function(err, user) {
             if(err) { return done(err); }
 
@@ -49,14 +50,16 @@ AuthResource.prototype.initPassport = function() {
             saveUser.name = profile.displayName;
 
             var cb = function(err, newUser) {
-                console.log('save returned: ', arguments);
+                debug('save returned: ', arguments);
                 if(err) { return done(err); }
                 done(null, newUser||saveUser);
             };
 
             if(user) {
+                debug('updating existing user w/ id', user.id);
                 userStore.update({id: user.id}, saveUser, cb);
             } else {
+                debug('creating new user w/ socialAccountId', saveUser.socialAccountId);
                 userStore.insert(saveUser, cb);
             }
         });
@@ -86,7 +89,7 @@ AuthResource.prototype.initPassport = function() {
     if(config.allowTwitter) {
         var cbURL = url.resolve(config.baseURL, this.path + '/twitter/callback');
 
-        // console.log('Initializing Twitter Login, cb: %s', cbURL);
+        debug('Initializing Twitter Login, cb: %s', cbURL);
         passport.use(new TwitterStrategy({
             consumerKey: config.twitterConsumerKey,
             consumerSecret: config.twitterConsumerSecret,
@@ -99,7 +102,7 @@ AuthResource.prototype.initPassport = function() {
     if(config.allowFacebook) {
         var cbURL = url.resolve(config.baseURL, this.path + '/facebook/callback');
 
-        // console.log('Initializing Facebook Login, cb: %s', cbURL);
+        debug('Initializing Facebook Login, cb: %s', cbURL);
         passport.use(new FacebookStrategy({
             clientID: config.facebookAppId,
             clientSecret: config.facebookAppSecret,
@@ -173,10 +176,10 @@ AuthResource.prototype.handle = function (ctx, next) {
                 // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
                 ctx.req.session.redirectURL = url.parse(ctx.query.redirectURL, true);
             } else {
-                console.log(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
+                debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
             }
         } catch(ex) {
-            console.log('Error parsing RedirectURL Regex!', ex);
+            debug('Error parsing RedirectURL Regex!', ex);
         }
     }
 
@@ -200,7 +203,7 @@ AuthResource.prototype.handle = function (ctx, next) {
                     try {
                         options.scope = JSON.parse(this.config.facebookScope);
                     } catch(ex) {
-                        console.log('Error parsing the facebookScope');
+                        debug('Error parsing the facebookScope');
                     }
                 }
             }
@@ -213,7 +216,7 @@ AuthResource.prototype.handle = function (ctx, next) {
         this.initPassport();
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
             if (err || !user) {
-                console.log('passport reported error: ', err, user, info);
+                debug('passport reported error: ', err, user, info);
                 return sendResponse(ctx, 'bad credentials');
             }
 
@@ -223,7 +226,7 @@ AuthResource.prototype.handle = function (ctx, next) {
         })(ctx.req, ctx.res, ctx.done);
     } else {
         // nothing matched, sorry
-        console.log('no module found: ', parts[0]);
+        debug('no module found: ', parts[0]);
         return sendResponse(ctx, 'bad credentials');
     }
 };
