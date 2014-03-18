@@ -1,6 +1,7 @@
 var Resource = require('deployd/lib/resource')
   , Script = require('deployd/lib/script')
   , UserCollection = require('deployd/lib/resources/user-collection')
+  , internalClient = require('deployd/lib/internal-client')
   , util = require('util')
   , url = require('url')
   , debug = require('debug')('dpd-passport')
@@ -32,15 +33,17 @@ AuthResource.prototype.initPassport = function() {
     if(this.initialized) return;
 
     var config = this.config,
-        userStore = process.server.createStore('users'),
+        dpd = internalClient.build(process.server, {isRoot: true}, []),
+        userCollection = process.server.resources.filter(function(res) {return res.config.type === 'UserCollection'})[0],
         passport = (this.passport = require('passport'));
 
     // Will be called when socialLogins are done
     // Check for existing user and update
     // or create new user and insert
     var socialAuthCallback = function(token, tokenSecret, profile, done) {
-        debug('Login callback - profile:', profile);
-        userStore.first({socialAccountId: profile.id}, function(err, user) {
+        debug('Login callback - profile: %j', profile);
+
+        userCollection.store.first({socialAccountId: profile.id}, function(err, user) {
             if(err) { return done(err); }
 
             var saveUser = user || {};
@@ -50,25 +53,31 @@ AuthResource.prototype.initPassport = function() {
             saveUser.name = profile.displayName;
 
             var cb = function(err, newUser) {
-                debug('save returned: ', arguments);
-                if(err) { return done(err); }
-                done(null, newUser||saveUser);
+                debug('save returned: "%j"', arguments);
             };
 
             if(user) {
                 debug('updating existing user w/ id', user.id);
-                userStore.update({id: user.id}, saveUser, cb);
             } else {
-                debug('creating new user w/ socialAccountId', saveUser.socialAccountId);
-                userStore.insert(saveUser, cb);
+                debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
+
+                saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
+                saveUser.password = saveUser.username;
             }
+            dpd.users.put(saveUser, function(res, err) {
+                if(err) { return done(err); }
+
+                userCollection.store.update({id: res.id}, {username: null, password: null}, function() {
+                    done(null, res||saveUser);
+                });
+            });
         });
     };
 
     if(config.allowLocal) {
         passport.use(new LocalStrategy(
           function(username, password, done) {
-            userStore.first({username: username}, function(err, user) {
+            userCollection.store.first({username: username}, function(err, user) {
                 if(err) { return done(err); }
 
                 if(user) {
