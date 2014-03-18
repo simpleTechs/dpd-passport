@@ -46,27 +46,30 @@ AuthResource.prototype.initPassport = function() {
         userCollection.store.first({socialAccountId: profile.id}, function(err, user) {
             if(err) { return done(err); }
 
-            var saveUser = user || {};
-            saveUser.socialAccountId = profile.id;
-            saveUser.socialAccount = profile.provider;
-            saveUser.profile = profile;
-            saveUser.name = profile.displayName;
-
-            var cb = function(err, newUser) {
-                debug('save returned: "%j"', arguments);
+            var saveUser = user || {
+                // these properties will only be set on first insert
+                socialAccountId: profile.id,
+                socialAccount: profile.provider,
+                name: profile.displayName
             };
+
+            // update the profile on every login, so that we always have the latest info available
+            saveUser.profile = profile;
 
             if(user) {
                 debug('updating existing user w/ id', user.id);
             } else {
                 debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
 
+                // we need to fake the password here, because deployd will force us to on create
+                // but we'll clear that later
                 saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
                 saveUser.password = saveUser.username;
             }
             dpd.users.put(saveUser, function(res, err) {
                 if(err) { return done(err); }
 
+                // before actually progressing the request, we need to clear username + password for social users
                 userCollection.store.update({id: res.id}, {username: null, password: null}, function() {
                     done(null, res||saveUser);
                 });
@@ -232,7 +235,7 @@ AuthResource.prototype.handle = function (ctx, next) {
             ctx.session.set({path: '/users', uid: user.id}).save(function(err, session) {
                 return sendResponse(ctx, err, session);
             });
-        })(ctx.req, ctx.res, ctx.done);
+        })(ctx.req, ctx.res, ctx.next||ctx.done);
     } else {
         // nothing matched, sorry
         debug('no module found: ', parts[0]);
