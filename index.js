@@ -180,21 +180,6 @@ AuthResource.prototype.handle = function (ctx, next) {
         return p; 
     });
 
-    if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
-        try {
-            this.regEx = this.regEx || new RegExp(this.config.allowedRedirectURLs, 'i');
-
-            if(ctx.query.redirectURL.match(this.regEx)) {
-                // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
-                ctx.req.session.redirectURL = url.parse(ctx.query.redirectURL, true);
-            } else {
-                debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
-            }
-        } catch(ex) {
-            debug('Error parsing RedirectURL Regex!', ex);
-        }
-    }
-
     // determine requested module
     var requestedModule, options = { session: false };
     switch(parts[0]) {
@@ -225,6 +210,22 @@ AuthResource.prototype.handle = function (ctx, next) {
     }
 
     if(requestedModule) {
+        // save the redirectURL for later use
+        if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
+            try {
+                this.regEx = this.regEx || new RegExp(this.config.allowedRedirectURLs, 'i');
+
+                if(ctx.query.redirectURL.match(this.regEx)) {
+                    // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
+                    ctx.req.session.redirectURL = url.parse(ctx.query.redirectURL, true);
+                } else {
+                    debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
+                }
+            } catch(ex) {
+                debug('Error parsing RedirectURL Regex!', ex);
+            }
+        }
+
         this.initPassport();
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
             if (err || !user) {
