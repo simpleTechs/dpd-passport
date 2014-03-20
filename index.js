@@ -170,7 +170,7 @@ var sendResponse = function(ctx, err, session) {
 AuthResource.prototype.handle = function (ctx, next) {
     // globally handle logout
     if(ctx.url === '/logout') {
-        if (ctx.res.cookies) ctx.res.cookies.set('sid', null);
+        if (ctx.res.cookies) ctx.res.cookies.set('sid', null, {overwrite: true});
         ctx.session.remove(ctx.done);
         return;
     }
