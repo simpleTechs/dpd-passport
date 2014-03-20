@@ -210,6 +210,23 @@ AuthResource.prototype.handle = function (ctx, next) {
     }
 
     if(requestedModule) {
+        // logout the user if he was logged in before
+        if(ctx.session) {
+            // throw away the old session
+            ctx.session.remove(function() {
+                // ignore the callback here, this is just for cleanup
+            });
+
+            // this is not actually async, as we don't supply an existing sid
+            process.server.sessions.createSession(function(err, sess) {
+                ctx.session = sess;
+            });
+
+            if (ctx.res.cookies) {
+                ctx.res.cookies.set('sid', ctx.session.sid, {overwrite: true});
+            }
+        }
+
         // save the redirectURL for later use
         if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
             try {
