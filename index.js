@@ -6,16 +6,21 @@ var Resource = require('deployd/lib/resource')
   , url = require('url')
   , debug = require('debug')('dpd-passport')
 
+  // Stetegies
   , LocalStrategy = require('passport-local').Strategy
   , TwitterStrategy = require('passport-twitter').Strategy
-  , FacebookStrategy = require('passport-facebook').Strategy;
+  , FacebookStrategy = require('passport-facebook').Strategy
+
+  // Globals
+  , DEFAULT_SALT_LEN = 256
+  , CALLBACK_URL = 'callback';
 
 function AuthResource() {
     Resource.apply(this, arguments);
 
     // read and parse config
     var config = this.config;
-    config.SALT_LEN = config.SALT_LEN || 256;
+    config.SALT_LEN = config.SALT_LEN || DEFAULT_SALT_LEN;
     config.baseURL = config.baseURL || process.env.DPD_PASSPORT_BASEURL;
 
     config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
@@ -99,20 +104,21 @@ AuthResource.prototype.initPassport = function() {
     }
 
     if(config.allowTwitter) {
-        var cbURL = url.resolve(config.baseURL, this.path + '/twitter/callback');
+        var cbURL = url.resolve(config.baseURL, this.path + '/twitter/' + CALLBACK_URL);
 
         debug('Initializing Twitter Login, cb: %s', cbURL);
         passport.use(new TwitterStrategy({
             consumerKey: config.twitterConsumerKey,
             consumerSecret: config.twitterConsumerSecret,
-            callbackURL: cbURL
+            callbackURL: cbURL,
+            sessionKey: 'data'
           },
           socialAuthCallback
         ));
     }
 
     if(config.allowFacebook) {
-        var cbURL = url.resolve(config.baseURL, this.path + '/facebook/callback');
+        var cbURL = url.resolve(config.baseURL, this.path + '/facebook/' + CALLBACK_URL);
 
         debug('Initializing Facebook Login, cb: %s', cbURL);
         passport.use(new FacebookStrategy({
@@ -128,8 +134,8 @@ AuthResource.prototype.initPassport = function() {
 }
 
 var sendResponse = function(ctx, err, session) {
-    if(ctx.req.session.redirectURL) {
-        var redirectURL = ctx.req.session.redirectURL;
+    if(ctx.session.data.redirectURL) {
+        var redirectURL = ctx.session.data.redirectURL;
         // delete search so that query is used
         delete redirectURL.search;
 
@@ -181,7 +187,7 @@ AuthResource.prototype.handle = function (ctx, next) {
     });
 
     // determine requested module
-    var requestedModule, options = { session: false };
+    var requestedModule, options = {};
     switch(parts[0]) {
         case 'login':
             if(ctx.method === 'POST' && this.config.allowLocal) {
@@ -210,8 +216,9 @@ AuthResource.prototype.handle = function (ctx, next) {
     }
 
     if(requestedModule) {
-        // logout the user if he was logged in before
-        if(ctx.session) {
+        // logout the user if he was logged in before, but only if that's not a callback
+        if(ctx.session && !(parts && parts.length >= 2 && parts[1] === CALLBACK_URL)) {
+            debug('Cleaning leftover session. %j', parts);
             // throw away the old session
             ctx.session.remove(function() {
                 // ignore the callback here, this is just for cleanup
@@ -234,7 +241,7 @@ AuthResource.prototype.handle = function (ctx, next) {
 
                 if(ctx.query.redirectURL.match(this.regEx)) {
                     // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
-                    ctx.req.session.redirectURL = url.parse(ctx.query.redirectURL, true);
+                    ctx.session.data.redirectURL = url.parse(ctx.query.redirectURL, true);
                 } else {
                     debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
                 }
