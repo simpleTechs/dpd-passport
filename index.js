@@ -136,7 +136,7 @@ AuthResource.prototype.initPassport = function() {
         var cbURL = url.resolve(config.baseURL, this.path + '/github/' + CALLBACK_URL);
 
         debug('Initializing GitHub Login, cb: %s', cbURL);
-        passport.use(new FacebookStrategy({
+        passport.use(new GitHubStrategy({
             clientID: config.githubClientId,
             clientSecret: config.githubClientSecret,
             callbackURL: cbURL
