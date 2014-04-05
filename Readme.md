@@ -6,6 +6,7 @@ Currently, the following methods are supported for authentification:
 * **local** (i.e. username + password)
 * **Twitter** (using Api v1.1)
 * **Facebook** (using OAuth)
+* **GitHub**
 
 Others can be implemented easily if Passport supports them.
 
@@ -14,38 +15,40 @@ Others can be implemented easily if Passport supports them.
 * deployd (you'd have guessed that, probably :-))
 * User-Collection named `users` with at least these custom fields:
 ```json
-    ["socialAccount": {
-        "name": "socialAccount",
-        "type": "string",
-        "typeLabel": "string",
-        "required": false,
-        "id": "socialAccount",
-        "order": 0
-    },
-    "socialAccountId": {
-        "name": "socialAccountId",
-        "type": "string",
-        "typeLabel": "string",
-        "required": false,
-        "id": "socialAccountId",
-        "order": 1
-    },
-    "profile": {
-        "name": "profile",
-        "type": "object",
-        "typeLabel": "object",
-        "required": false,
-        "id": "profile",
-        "order": 2
-    },
-    "name": {
-        "name": "name",
-        "type": "string",
-        "typeLabel": "string",
-        "required": false,
-        "id": "name",
-        "order": 3
-    }]
+    {
+        "socialAccount": {
+            "name": "socialAccount",
+            "type": "string",
+            "typeLabel": "string",
+            "required": false,
+            "id": "socialAccount",
+            "order": 0
+        },
+        "socialAccountId": {
+            "name": "socialAccountId",
+            "type": "string",
+            "typeLabel": "string",
+            "required": false,
+            "id": "socialAccountId",
+            "order": 1
+        },
+        "profile": {
+            "name": "profile",
+            "type": "object",
+            "typeLabel": "object",
+            "required": false,
+            "id": "profile",
+            "order": 2
+        },
+        "name": {
+            "name": "name",
+            "type": "string",
+            "typeLabel": "string",
+            "required": false,
+            "id": "name",
+            "order": 3
+        }
+    }
 ```
 
 ### Installation
@@ -62,12 +65,12 @@ Note: You may supply the baseURL (your website's root) via the environment varia
 
 ### Usage
 
-Point your users to `/auth/{login,twitter,facebook}` to have them login (or signup) via the specified module.
+Point your users to `/auth/{login,twitter,facebook,github}` to have them login (or signup) via the specified module.
 After that, Auth-Passport completely takes over and redirects the users according to the OAuth(2) flow.
 
 ### Usage in Mobile Apps
 
-Auth-Passport was built with usage in mobile Apps in mind. From inside your mobile app, open a browser and point the user to your website's `/auth/{login,twitter,facebook}` endpoint. From there, Auth-Passport will take over and guide (i.e. redirect) your user through the different steps needed for each provider, until the user has authorized your app and logged in successfully.
+Auth-Passport was built with usage in mobile Apps in mind. From inside your mobile app, open a browser and point the user to your website's `/auth/{login,twitter,facebook,github}` endpoint. From there, Auth-Passport will take over and guide (i.e. redirect) your user through the different steps needed for each provider, until the user has authorized your app and logged in successfully.
 
 Now you can get hold of your user and his session, by specifying a `redirectURL` in the original request. After the login is done (no matter if it was successful or not), your user will be redirected to the specified URL.
 Supply some app-specific URL (see your platform's SDK on how that looks) and catch the response in your app.
@@ -78,8 +81,18 @@ Auth-Passport will supply the following information:
 * **success** (Bool) `true`, if login was successfull
 * **error** (String) contains the error message in case of an error
 
+### Development
+
+To get started with development, please fork this repository and make your desired changes. Please note that we do all our dev work on bitbucket, so while you may submit pull requests on github, we will only push releases to github once they are finished.
+
 ### Credits
 
 We'd like to thank Passport for building this amazing auth-framework!
 
 Auth-Passport is the work of [simpleTechs.net](https://www.simpletechs.net)
+
+### Contributors
+
+The following people contributed some of there valuable spare time to make this module even better. Please add yourself to the list, in case we forgot you.
+
+* [Tristan](https://github.com/tmcnab)

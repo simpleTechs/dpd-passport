@@ -10,6 +10,7 @@ var Resource = require('deployd/lib/resource')
   , LocalStrategy = require('passport-local').Strategy
   , TwitterStrategy = require('passport-twitter').Strategy
   , FacebookStrategy = require('passport-facebook').Strategy
+  , GitHubStrategy = require('passport-github').Strategy
 
   // Globals
   , DEFAULT_SALT_LEN = 256
@@ -25,6 +26,7 @@ function AuthResource() {
 
     config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
     config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
+    config.allowGitHub = config.allowGitHub && config.baseURL && config.githubClientId && config.githubClientSecret;
 }
 util.inherits(AuthResource, Resource);
 
@@ -130,6 +132,19 @@ AuthResource.prototype.initPassport = function() {
         ));
     }
 
+    if(config.allowGitHub) {
+        var cbURL = url.resolve(config.baseURL, this.path + '/github/' + CALLBACK_URL);
+
+        debug('Initializing GitHub Login, cb: %s', cbURL);
+        passport.use(new GitHubStrategy({
+            clientID: config.githubClientId,
+            clientSecret: config.githubClientSecret,
+            callbackURL: cbURL
+          },
+          socialAuthCallback
+        ));
+    }
+
     this.initialized = true;
 }
 
@@ -181,9 +196,9 @@ AuthResource.prototype.handle = function (ctx, next) {
         return;
     }
 
-    var parts = ctx.url.split('/').filter(function(p) { 
+    var parts = ctx.url.split('/').filter(function(p) {
         // filters out all empty parts
-        return p; 
+        return p;
     });
 
     // determine requested module
@@ -211,6 +226,17 @@ AuthResource.prototype.handle = function (ctx, next) {
                 }
             }
             break;
+        case 'github':
+            if(this.config.allowGitHub) {
+                requestedModule = 'github';
+                if(this.config.githubScope) {
+                    try {
+                        options.scope = JSON.parse(this.config.githubScope);
+                    } catch(ex) {
+                        debug('Error parsing the githubScope')
+                    }
+                }
+            }
         default:
             break;
     }
@@ -294,6 +320,10 @@ AuthResource.basicDashboard = {
     type        : 'checkbox',
     description : 'Allow users to login via Facebook (requires Facebook Id and Secret!)'
   },{
+    name        : 'allowGitHub',
+    type        : 'checkbox',
+    description : 'Allow users to login via GitHub (requires GitHub Id and Secret!)'
+  },{
     name        : 'twitterConsumerKey',
     type        : 'text'/*,
     description : 'TWITTER_CONSUMER_KEY'*/
@@ -313,5 +343,17 @@ AuthResource.basicDashboard = {
     name        : 'facebookScope',
     type        : 'text',
     description : 'If your application needs extended permissions, they can be requested here. Supply as JS-Array: "[\'read_stream\']"'
+  }, {
+    name        : 'githubClientId',
+    type        : 'text'/*,
+    description : 'TODO'*/
+  }, {
+    name        : 'githubClientSecret',
+    type        : 'text'/*,
+    description : 'TODO'*/
+  }, {
+    name        : 'githubScope',
+    type        : 'text',
+    description : 'If your application needs extended permissions, they can be requested here. Supply as JS-Array: "[\'repo\']"'
   }]
 };
