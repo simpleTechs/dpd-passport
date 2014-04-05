@@ -15,38 +15,40 @@ Others can be implemented easily if Passport supports them.
 * deployd (you'd have guessed that, probably :-))
 * User-Collection named `users` with at least these custom fields:
 ```json
-    ["socialAccount": {
-        "name": "socialAccount",
-        "type": "string",
-        "typeLabel": "string",
-        "required": false,
-        "id": "socialAccount",
-        "order": 0
-    },
-    "socialAccountId": {
-        "name": "socialAccountId",
-        "type": "string",
-        "typeLabel": "string",
-        "required": false,
-        "id": "socialAccountId",
-        "order": 1
-    },
-    "profile": {
-        "name": "profile",
-        "type": "object",
-        "typeLabel": "object",
-        "required": false,
-        "id": "profile",
-        "order": 2
-    },
-    "name": {
-        "name": "name",
-        "type": "string",
-        "typeLabel": "string",
-        "required": false,
-        "id": "name",
-        "order": 3
-    }]
+    {
+        "socialAccount": {
+            "name": "socialAccount",
+            "type": "string",
+            "typeLabel": "string",
+            "required": false,
+            "id": "socialAccount",
+            "order": 0
+        },
+        "socialAccountId": {
+            "name": "socialAccountId",
+            "type": "string",
+            "typeLabel": "string",
+            "required": false,
+            "id": "socialAccountId",
+            "order": 1
+        },
+        "profile": {
+            "name": "profile",
+            "type": "object",
+            "typeLabel": "object",
+            "required": false,
+            "id": "profile",
+            "order": 2
+        },
+        "name": {
+            "name": "name",
+            "type": "string",
+            "typeLabel": "string",
+            "required": false,
+            "id": "name",
+            "order": 3
+        }
+    }
 ```
 
 ### Installation
@@ -79,8 +81,18 @@ Auth-Passport will supply the following information:
 * **success** (Bool) `true`, if login was successfull
 * **error** (String) contains the error message in case of an error
 
+### Development
+
+To get started with development, please fork this repository and make your desired changes. Please note that we do all our dev work on bitbucket, so while you may submit pull requests on github, we will only push releases to github once they are finished.
+
 ### Credits
 
 We'd like to thank Passport for building this amazing auth-framework!
 
 Auth-Passport is the work of [simpleTechs.net](https://www.simpletechs.net)
+
+### Contributors
+
+The following people contributed some of there valuable spare time to make this module even better. Please add yourself to the list, in case we forgot you.
+
+* [Tristan](https://github.com/tmcnab)
