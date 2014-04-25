@@ -47,17 +47,6 @@ AuthResource.prototype.initPassport = function() {
         passport = (this.passport = require('passport'));
 
 
-    // google auth requires different parameters than the rest
-    var googleAuthCallback = function(identifier, profile, done){
-        profile.id = identifier;
-        profile.provider = 'google';
-        var domain = profile.emails[0].value.replace(/.*@(.*)$/, '$1');
-        if( !config.allowedGoogleDomains || domain.match(new RegExp(config.allowedGoogleDomains) )){
-            return socialAuthCallback(null, null, profile, done);
-        }else{
-            return done(null, false, {message: 'invalid google domain'});
-        }
-    };
 
     // Will be called when socialLogins are done
     // Check for existing user and update
@@ -97,6 +86,19 @@ AuthResource.prototype.initPassport = function() {
                 });
             });
         });
+    };
+    
+    // google auth requires different parameters than the rest
+    // does a few google specific things then calls generic socialAuthCallback
+    var googleAuthCallback = function(identifier, profile, done){
+        profile.id = identifier;
+        profile.provider = 'google';
+        var domain = profile.emails[0].value.replace(/.*@(.*)$/, '$1');
+        if( !config.allowedGoogleDomains || domain.match(new RegExp(config.allowedGoogleDomains) )){
+            return socialAuthCallback(null, null, profile, done);
+        }else{
+            return done(null, false, {message: 'invalid google domain'});
+        }
     };
 
     if(config.allowLocal) {
