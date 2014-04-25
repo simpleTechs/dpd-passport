@@ -11,6 +11,7 @@ var Resource = require('deployd/lib/resource')
   , TwitterStrategy = require('passport-twitter').Strategy
   , FacebookStrategy = require('passport-facebook').Strategy
   , GitHubStrategy = require('passport-github').Strategy
+  , GoogleStrategy = require('passport-google').Strategy
 
   // Globals
   , DEFAULT_SALT_LEN = 256
@@ -27,6 +28,7 @@ function AuthResource() {
     config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
     config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
     config.allowGitHub = config.allowGitHub && config.baseURL && config.githubClientId && config.githubClientSecret;
+    config.allowGoogle = config.allowGoogle && config.baseURL;
 }
 util.inherits(AuthResource, Resource);
 
@@ -43,6 +45,19 @@ AuthResource.prototype.initPassport = function() {
         dpd = internalClient.build(process.server, {isRoot: true}, []),
         userCollection = process.server.resources.filter(function(res) {return res.config.type === 'UserCollection'})[0],
         passport = (this.passport = require('passport'));
+
+
+    // google auth requires different parameters than the rest
+    var googleAuthCallback = function(identifier, profile, done){
+        profile.id = identifier;
+        profile.provider = 'google';
+        var domain = profile.emails[0].value.replace(/.*@(.*)$/, '$1');
+        if( !config.allowedGoogleDomains || domain.match(new RegExp(config.allowedGoogleDomains) )){
+            return socialAuthCallback(null, null, profile, done);
+        }else{
+            return done(null, false, {message: 'invalid google domain'});
+        }
+    };
 
     // Will be called when socialLogins are done
     // Check for existing user and update
@@ -145,6 +160,19 @@ AuthResource.prototype.initPassport = function() {
         ));
     }
 
+    if(config.allowGoogle) {
+        var cbURL = url.resolve(config.baseURL, this.path + '/google/' + CALLBACK_URL);
+
+        debug('Initializing Google Login, cb: %s', cbURL);
+        passport.use(new GoogleStrategy({
+            returnURL: cbURL,
+            realm: config.baseURL
+          },
+
+          googleAuthCallback
+        ));
+    }
+
     this.initialized = true;
 }
 
@@ -237,6 +265,12 @@ AuthResource.prototype.handle = function (ctx, next) {
                     }
                 }
             }
+            break;
+        case 'google':
+            if(this.config.allowGoogle) {
+                requestedModule = 'google';
+            }
+            break;
         default:
             break;
     }
@@ -259,7 +293,6 @@ AuthResource.prototype.handle = function (ctx, next) {
                 ctx.res.cookies.set('sid', ctx.session.sid, {overwrite: true});
             }
         }
-
         // save the redirectURL for later use
         if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
             try {
@@ -324,6 +357,10 @@ AuthResource.basicDashboard = {
     type        : 'checkbox',
     description : 'Allow users to login via GitHub (requires GitHub Id and Secret!)'
   },{
+    name        : 'allowGoogle',
+    type        : 'checkbox',
+    description : 'Allow users to login via Google'
+  },{
     name        : 'twitterConsumerKey',
     type        : 'text'/*,
     description : 'TWITTER_CONSUMER_KEY'*/
@@ -355,5 +392,10 @@ AuthResource.basicDashboard = {
     name        : 'githubScope',
     type        : 'text',
     description : 'If your application needs extended permissions, they can be requested here. Supply as JS-Array: "[\'repo\']"'
-  }]
+  }, {
+    name        : 'allowedGoogleDomains',
+    type        : 'text',
+    description : 'If you want to filter on a particular google domain or domains, enter it here as a regex'
+  }
+  ]
 };
