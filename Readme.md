@@ -7,6 +7,7 @@ Currently, the following methods are supported for authentification:
 * **Twitter** (using Api v1.1)
 * **Facebook** (using OAuth)
 * **GitHub**
+* **Google**
 
 Others can be implemented easily if Passport supports them.
 
@@ -65,7 +66,7 @@ Note: You may supply the baseURL (your website's root) via the environment varia
 
 ### Usage
 
-Point your users to `/auth/{login,twitter,facebook,github}` to have them login (or signup) via the specified module.
+Point your users to `/auth/{login,twitter,facebook,github,google}` to have them login (or signup) via the specified module.
 After that, Auth-Passport completely takes over and redirects the users according to the OAuth(2) flow.
 
 ### Usage in Mobile Apps
