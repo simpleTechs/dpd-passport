@@ -162,7 +162,7 @@ var sendResponse = function(ctx, err, session) {
             redirectURL.query.error = err;
         } else {
             // append user + session id to the redirect url
-             redirectURL.query.success = true;
+            redirectURL.query.success = true;
             /* Cookie is set, I dont't want secret data in the url
             redirectURL.query.sid = session.id;
             redirectURL.query.uid = session.uid;
