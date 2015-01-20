@@ -285,7 +285,7 @@ AuthResource.prototype.handle = function (ctx, next) {
 
                 if(ctx.query.redirectURL.match(this.regEx)) {
                     // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
-                    ctx.session.set({redirectURL: ctx.query.redirectURL})
+                    ctx.session.set({redirectURL: ctx.query.redirectURL});
                 } else {
                     debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
                 }
