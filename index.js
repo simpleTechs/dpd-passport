@@ -302,6 +302,8 @@ AuthResource.prototype.handle = function (ctx, next) {
             }
 
             ctx.session.set({path: '/users', uid: user.id}).save(function(err, session) {
+                if(ctx.session.sid && ctx.res.cookies)
+                    if (ctx.res.cookies) ctx.res.cookies.set('sid', ctx.session.sid, {overwrite: true});
                 return sendResponse(ctx, err, session);
             });
         })(ctx.req, ctx.res, ctx.next||ctx.done);
