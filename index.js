@@ -178,7 +178,7 @@ AuthResource.prototype.initPassport = function() {
     this.initialized = true;
 }
 
-var sendResponse = function(ctx, err, session) {
+var sendResponse = function(ctx, err, session, disableSessionId) {
     if(ctx.session.data.redirectURL) {
         var redirectURL = ctx.session.data.redirectURL;
         // delete search so that query is used
@@ -193,8 +193,11 @@ var sendResponse = function(ctx, err, session) {
         } else {
             // append user + session id to the redirect url
             redirectURL.query.success = true;
-            redirectURL.query.sid = session.id;
-            redirectURL.query.uid = session.uid;
+
+            if(!disableSessionId) {
+                redirectURL.query.sid = session.id;
+                redirectURL.query.uid = session.uid;
+            }
         }
 
         var redirectURLString = '';
@@ -219,6 +222,8 @@ var sendResponse = function(ctx, err, session) {
     }
 }
 AuthResource.prototype.handle = function (ctx, next) {
+    var config = this.config;
+    
     // globally handle logout
     if(ctx.url === '/logout') {
         if (ctx.res.cookies) ctx.res.cookies.set('sid', null, {overwrite: true});
@@ -315,17 +320,18 @@ AuthResource.prototype.handle = function (ctx, next) {
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
             if (err || !user) {
                 debug('passport reported error: ', err, user, info);
-                return sendResponse(ctx, 'bad credentials');
+                return sendResponse(ctx, 'bad credentials', session, config.disableSessionId);
+            }
             }
 
             ctx.session.set({path: '/users', uid: user.id}).save(function(err, session) {
-                return sendResponse(ctx, err, session);
+                return sendResponse(ctx, err, session, config.disableSessionId);
             });
         })(ctx.req, ctx.res, ctx.next||ctx.done);
     } else {
         // nothing matched, sorry
         debug('no module found: ', parts[0]);
-        return sendResponse(ctx, 'bad credentials');
+        return sendResponse(ctx, 'bad credentials', session, config.disableSessionId);
     }
 };
 
@@ -342,6 +348,10 @@ AuthResource.basicDashboard = {
     name        : 'allowedRedirectURLs',
     type        : 'text',
     description : 'Specify a regular expression for which redirect URLs you want to allow. Supply as JS-Regex: "^http://www\.your-page.com/.*$", matching is always done case-insensitive. Defaults to "" (i.e. NO redirects will be allowed!)'
+  },{
+    name        : 'disableSessionId',
+    type        : 'checkbox',
+    description : 'Disable appending the Session Id to the redirect URL. This is a security measure for the web. You can access the Session Id from the Cookie-Header.'
   },{
     name        : 'allowLocal',
     type        : 'checkbox',
