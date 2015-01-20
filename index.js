@@ -180,7 +180,7 @@ AuthResource.prototype.initPassport = function() {
 
 var sendResponse = function(ctx, err, session) {
     if(ctx.session.data.redirectURL) {
-        var redirectURL = ctx.session.data.redirectURL;
+        var redirectURL = url.parse(ctx.session.data.redirectURL, true);
         // delete search so that query is used
         delete redirectURL.search;
 
@@ -278,23 +278,6 @@ AuthResource.prototype.handle = function (ctx, next) {
     }
 
     if(requestedModule) {
-        // logout the user if he was logged in before, but only if that's not a callback
-        if(ctx.session && !(parts && parts.length >= 2 && parts[1] === CALLBACK_URL)) {
-            debug('Cleaning leftover session. %j', parts);
-            // throw away the old session
-            ctx.session.remove(function() {
-                // ignore the callback here, this is just for cleanup
-            });
-
-            // this is not actually async, as we don't supply an existing sid
-            process.server.sessions.createSession(function(err, sess) {
-                ctx.session = sess;
-            });
-
-            if (ctx.res.cookies) {
-                ctx.res.cookies.set('sid', ctx.session.sid, {overwrite: true});
-            }
-        }
         // save the redirectURL for later use
         if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
             try {
@@ -302,7 +285,7 @@ AuthResource.prototype.handle = function (ctx, next) {
 
                 if(ctx.query.redirectURL.match(this.regEx)) {
                     // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
-                    ctx.session.data.redirectURL = url.parse(ctx.query.redirectURL, true);
+                    ctx.session.set({redirectURL: ctx.query.redirectURL})
                 } else {
                     debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
                 }
