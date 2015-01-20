@@ -299,6 +299,9 @@ AuthResource.prototype.handle = function (ctx, next) {
             if (err || !user) {
                 debug('passport reported error: ', err, user, info);
                 return sendResponse(ctx, 'bad credentials');
+
+            if (ctx.res.cookies) {
+                ctx.res.cookies.set('sid', ctx.session.sid, {overwrite: true});
             }
 
             ctx.session.set({path: '/users', uid: user.id}).save(function(err, session) {
