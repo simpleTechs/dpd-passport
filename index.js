@@ -178,9 +178,10 @@ AuthResource.prototype.initPassport = function() {
     this.initialized = true;
 }
 
-var sendResponse = function(ctx, err, session, disableSessionId) {
-    if(ctx.session.data.redirectURL) {
-        var redirectURL = url.parse(ctx.session.data.redirectURL, true);
+var sendResponse = function(ctx, err, disableSessionId) {
+    var sessionData = ctx.session.data;
+    if(sessionData.redirectURL) {
+        var redirectURL = url.parse(sessionData.redirectURL, true);
         // delete search so that query is used
         delete redirectURL.search;
 
@@ -195,8 +196,8 @@ var sendResponse = function(ctx, err, session, disableSessionId) {
             redirectURL.query.success = true;
 
             if(!disableSessionId) {
-                redirectURL.query.sid = session.id;
-                redirectURL.query.uid = session.uid;
+                redirectURL.query.sid = sessionData.id;
+                redirectURL.query.uid = sessionData.uid;
             }
         }
 
@@ -217,7 +218,7 @@ var sendResponse = function(ctx, err, session, disableSessionId) {
             ctx.res.statusCode = 401;
             return ctx.done('bad credentials');
         } else {
-            ctx.done(err, session);
+            ctx.done(err, sessionData);
         }
     }
 }
@@ -303,21 +304,21 @@ AuthResource.prototype.handle = function (ctx, next) {
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
             if (err || !user) {
                 debug('passport reported error: ', err, user, info);
-                return sendResponse(ctx, 'bad credentials', session, config.disableSessionId);
+                return sendResponse(ctx, 'bad credentials', config.disableSessionId);
             }
 
 			if (ctx.res.cookies) {
                 ctx.res.cookies.set('sid', ctx.session.sid, {overwrite: true});
             }
 
-            ctx.session.set({path: '/users', uid: user.id}).save(function(err, session) {
-                return sendResponse(ctx, err, session, config.disableSessionId);
+            ctx.session.set({path: '/users', uid: user.id}).save(function(err, sessionData) {
+                return sendResponse(ctx, err, config.disableSessionId);
             });
         })(ctx.req, ctx.res, ctx.next||ctx.done);
     } else {
         // nothing matched, sorry
         debug('no module found: ', parts[0]);
-        return sendResponse(ctx, 'bad credentials', session, config.disableSessionId);
+        return sendResponse(ctx, 'bad credentials', config.disableSessionId);
     }
 };
 
