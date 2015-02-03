@@ -1,12 +1,26 @@
 {
   "name": "dpd-passport",
-  "version": "0.1.1",
+  "version": "0.1.7",
   "description": "Passport for deployd",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "simpletechs.net",
+  "repository": {
+    "type": "git",
+    "url": "git@bitbucket.org:simpletechs/dpd-passport.git"
+  },
+  "keywords": [
+    "deployd",
+    "dpd",
+    "passport",
+    "login",
+    "facebook",
+    "github",
+    "google",
+    "twitter"
+  ],
+  "author": "Fabian Off, simpleTechs.net <fabian@simpletechs.net>",
   "license": "FreeBSD",
   "dependencies": {
     "passport-local": "^1.0.0",
