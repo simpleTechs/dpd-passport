@@ -11,7 +11,7 @@ var Resource = require('deployd/lib/resource')
   , TwitterStrategy = require('passport-twitter').Strategy
   , FacebookStrategy = require('passport-facebook').Strategy
   , GitHubStrategy = require('passport-github').Strategy
-  , GoogleStrategy = require('passport-google').Strategy
+  , GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
 
   // Globals
   , DEFAULT_SALT_LEN = 256
@@ -28,7 +28,7 @@ function AuthResource() {
     config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
     config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
     config.allowGitHub = config.allowGitHub && config.baseURL && config.githubClientId && config.githubClientSecret;
-    config.allowGoogle = config.allowGoogle && config.baseURL;
+    config.allowGoogle = config.allowGoogle && config.baseURL && config.googleClientId && config.googleClientSecret;
 }
 util.inherits(AuthResource, Resource);
 
@@ -86,19 +86,6 @@ AuthResource.prototype.initPassport = function() {
                 });
             });
         });
-    };
-    
-    // google auth requires different parameters than the rest
-    // does a few google specific things then calls generic socialAuthCallback
-    var googleAuthCallback = function(identifier, profile, done){
-        profile.id = identifier;
-        profile.provider = 'google';
-        var domain = profile.emails[0].value.replace(/.*@(.*)$/, '$1');
-        if( !config.allowedGoogleDomains || domain.match(new RegExp(config.allowedGoogleDomains) )){
-            return socialAuthCallback(null, null, profile, done);
-        }else{
-            return done(null, false, {message: 'invalid google domain'});
-        }
     };
 
     if(config.allowLocal) {
@@ -167,11 +154,12 @@ AuthResource.prototype.initPassport = function() {
 
         debug('Initializing Google Login, cb: %s', cbURL);
         passport.use(new GoogleStrategy({
-            returnURL: cbURL,
-            realm: config.baseURL
+            clientID: config.googleClientId,
+            clientSecret: config.googleClientSecret,
+            callbackURL: cbURL
           },
 
-          googleAuthCallback
+          socialAuthCallback
         ));
     }
 
@@ -277,6 +265,7 @@ AuthResource.prototype.handle = function (ctx, next) {
         case 'google':
             if(this.config.allowGoogle) {
                 requestedModule = 'google';
+                options.scope = this.config.googleScope || 'profile email';
             }
             break;
         default:
@@ -392,9 +381,15 @@ AuthResource.basicDashboard = {
     type        : 'text',
     description : 'If your application needs extended permissions, they can be requested here. Supply as JS-Array: "[\'repo\']"'
   }, {
-    name        : 'allowedGoogleDomains',
+    name        : 'googleClientId',
+    type        : 'text'
+  }, {
+    name        : 'googleClientSecret',
+    type        : 'text'
+  }, {
+    name        : 'googleScope',
     type        : 'text',
-    description : 'If you want to filter on a particular google domain or domains, enter it here as a regex'
+    description : 'defaults to "profile email"'
   }
   ]
 };
