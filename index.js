@@ -77,6 +77,7 @@ AuthResource.prototype.initPassport = function() {
                 saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
                 saveUser.password = saveUser.username;
             }
+            saveUser.$limitRecursion = 1000;
             dpd.users.put(saveUser, function(res, err) {
                 if(err) { return done(err); }
 
@@ -204,6 +205,7 @@ var sendResponse = function(ctx, err, disableSessionId) {
     } else {
         if(err) {
             ctx.res.statusCode = 401;
+            console.err(err);
             return ctx.done('bad credentials');
         } else {
             ctx.done(err, sessionData);
@@ -293,6 +295,7 @@ AuthResource.prototype.handle = function (ctx, next) {
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
             if (err || !user) {
                 debug('passport reported error: ', err, user, info);
+                console.err(err);
                 return sendResponse(ctx, 'bad credentials', config.disableSessionId);
             }
 
@@ -307,6 +310,7 @@ AuthResource.prototype.handle = function (ctx, next) {
     } else {
         // nothing matched, sorry
         debug('no module found: ', parts[0]);
+        console.err(err);
         return sendResponse(ctx, 'bad credentials', config.disableSessionId);
     }
 };
