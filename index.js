@@ -77,6 +77,7 @@ AuthResource.prototype.initPassport = function() {
                 saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
                 saveUser.password = saveUser.username;
             }
+            saveUser.$limitRecursion = 1000;
             dpd.users.put(saveUser, function(res, err) {
                 if(err) { return done(err); }
 
