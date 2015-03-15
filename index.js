@@ -214,7 +214,7 @@ var sendResponse = function(ctx, err, disableSessionId) {
 }
 AuthResource.prototype.handle = function (ctx, next) {
     var config = this.config;
-    
+
     // globally handle logout
     if(ctx.url === '/logout') {
         if (ctx.res.cookies) ctx.res.cookies.set('sid', null, {overwrite: true});
@@ -310,7 +310,8 @@ AuthResource.prototype.handle = function (ctx, next) {
     } else {
         // nothing matched, sorry
         debug('no module found: ', parts[0]);
-        console.err(err);
+        //TODO: err doesn't exist in this context
+        //console.err(err);
         return sendResponse(ctx, 'bad credentials', config.disableSessionId);
     }
 };
