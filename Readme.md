@@ -3,7 +3,7 @@
 This custom resource type allows you to authorize your users using the powerful [Passport](http://passportjs.org).
 Currently, the following methods are supported for authentification:
 
-* **local** (i.e. username + password)
+* **local** (i.e. username + password) - ONLY HTTP-POST METHOD
 * **Twitter** (using Api v1.1)
 * **Facebook** (using OAuth)
 * **GitHub**
@@ -66,8 +66,10 @@ Note: You may supply the baseURL (your website's root) via the environment varia
 
 ### Usage
 
-Point your users to `/auth/{login,twitter,facebook,github,google}` to have them login (or signup) via the specified module.
+Point your users to `/auth/{twitter,facebook,github,google}` to have them login (or signup) via the specified module.
 After that, Auth-Passport completely takes over and redirects the users according to the OAuth(2) flow.
+
+Also You can use `/auth/login` to login on local user collection but it has to be POST method.
 
 ### Usage in Mobile Apps
 
