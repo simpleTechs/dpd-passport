@@ -309,8 +309,7 @@ AuthResource.prototype.handle = function (ctx, next) {
         })(ctx.req, ctx.res, ctx.next||ctx.done);
     } else {
         // nothing matched, sorry
-        debug('no module found: ', parts[0]);
-        console.error(err);
+        console.error('no module found: %s', parts[0]);
         return sendResponse(ctx, 'bad credentials', config.disableSessionId);
     }
 };
