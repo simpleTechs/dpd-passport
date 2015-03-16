@@ -1,21 +1,21 @@
-var Resource = require('deployd/lib/resource')
-  , Script = require('deployd/lib/script')
-  , UserCollection = require('deployd/lib/resources/user-collection')
-  , internalClient = require('deployd/lib/internal-client')
-  , util = require('util')
-  , url = require('url')
-  , debug = require('debug')('dpd-passport')
+var Resource = require('deployd/lib/resource'),
+    Script = require('deployd/lib/script'),
+    UserCollection = require('deployd/lib/resources/user-collection'),
+    internalClient = require('deployd/lib/internal-client'),
+    util = require('util'),
+    url = require('url'),
+    debug = require('debug')('dpd-passport'),
 
-  // Stetegies
-  , LocalStrategy = require('passport-local').Strategy
-  , TwitterStrategy = require('passport-twitter').Strategy
-  , FacebookStrategy = require('passport-facebook').Strategy
-  , GitHubStrategy = require('passport-github').Strategy
-  , GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
+    // Stetegies
+    LocalStrategy = require('passport-local').Strategy,
+    TwitterStrategy = require('passport-twitter').Strategy,
+    FacebookStrategy = require('passport-facebook').Strategy,
+    GitHubStrategy = require('passport-github').Strategy,
+    GoogleStrategy = require('passport-google-oauth').OAuth2Strategy,
 
-  // Globals
-  , DEFAULT_SALT_LEN = 256
-  , CALLBACK_URL = 'callback';
+    // Globals
+    DEFAULT_SALT_LEN = 256,
+    CALLBACK_URL = 'callback';
 
 function AuthResource() {
     Resource.apply(this, arguments);
@@ -43,7 +43,9 @@ AuthResource.prototype.initPassport = function() {
 
     var config = this.config,
         dpd = internalClient.build(process.server, {isRoot: true}, []),
-        userCollection = process.server.resources.filter(function(res) {return res.config.type === 'UserCollection'})[0],
+        userCollection = process.server.resources.filter(function(res) {
+            return res.config.type === 'UserCollection';
+        })[0],
         passport = (this.passport = require('passport'));
 
 
@@ -96,8 +98,8 @@ AuthResource.prototype.initPassport = function() {
                 if(err) { return done(err); }
 
                 if(user) {
-                    var salt = user.password.substr(0, config.SALT_LEN)
-                      , hash = user.password.substr(config.SALT_LEN);
+                    var salt = user.password.substr(0, config.SALT_LEN),
+                        hash = user.password.substr(config.SALT_LEN);
 
                     if(hash === UserCollection.prototype.hash(password, salt)) {
                         return done(null, user);
@@ -165,7 +167,7 @@ AuthResource.prototype.initPassport = function() {
     }
 
     this.initialized = true;
-}
+};
 
 var sendResponse = function(ctx, err, disableSessionId) {
     var sessionData = ctx.session.data;
@@ -211,7 +213,8 @@ var sendResponse = function(ctx, err, disableSessionId) {
             ctx.done(err, sessionData);
         }
     }
-}
+};
+
 AuthResource.prototype.handle = function (ctx, next) {
     var config = this.config;
     
@@ -259,7 +262,7 @@ AuthResource.prototype.handle = function (ctx, next) {
                     try {
                         options.scope = JSON.parse(this.config.githubScope);
                     } catch(ex) {
-                        debug('Error parsing the githubScope')
+                        debug('Error parsing the githubScope');
                     }
                 }
             }
