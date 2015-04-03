@@ -24,6 +24,9 @@ function AuthResource() {
     var config = this.config;
     config.SALT_LEN = config.SALT_LEN || DEFAULT_SALT_LEN;
     config.baseURL = config.baseURL || process.env.DPD_PASSPORT_BASEURL;
+    if(!config.baseURL) {
+        debug('baseURL missing, cannot enable any OAuth Module')
+    }
 
     config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
     config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
