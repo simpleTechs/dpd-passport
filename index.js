@@ -305,11 +305,19 @@ AuthResource.prototype.handle = function (ctx, next) {
                 return sendResponse(ctx, 'bad credentials', config.disableSessionId);
             }
 
-			if (ctx.res.cookies) {
-                ctx.res.cookies.set('sid', ctx.session.sid, {overwrite: true});
-            }
+            var sessionData = {
+                path: '/users',
+                uid: user.id
+            };
 
-            ctx.session.set({path: '/users', uid: user.id}).save(function(err, sessionData) {
+            // be backwards compatible here, check if the function already exists
+            if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
+                sessionData.userhash = UserCollection.prototype.getUserAndPasswordHash(user);
+            }
+            ctx.session.set(sessionData).save(function(err, session) {
+                // apply the sid manually to the session, since only now do we have the id
+                ctx.res.cookies.set('sid', session.id, { overwrite: true });
+
                 return sendResponse(ctx, err, config.disableSessionId);
             });
         })(ctx.req, ctx.res, ctx.next||ctx.done);
