@@ -213,7 +213,7 @@ var sendResponse = function(ctx, err, disableSessionId) {
             console.error(err);
             return ctx.done('bad credentials');
         } else {
-            ctx.done(err, sessionData);
+            ctx.done(err, { path: sessionData.path, id: sessionData.id, uid: sessionData.uid });
         }
     }
 };
