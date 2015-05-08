@@ -1,6 +1,5 @@
 var Resource = require('deployd/lib/resource'),
     Script = require('deployd/lib/script'),
-    Collection = require('deployd/lib/resources/collection'),
     UserCollection = require('deployd/lib/resources/user-collection'),
     internalClient = require('deployd/lib/internal-client'),
     util = require('util'),
