@@ -1,5 +1,6 @@
 var Resource = require('deployd/lib/resource'),
     Script = require('deployd/lib/script'),
+    Collection = require('deployd/lib/resources/collection'),
     UserCollection = require('deployd/lib/resources/user-collection'),
     internalClient = require('deployd/lib/internal-client'),
     util = require('util'),
@@ -220,7 +221,7 @@ var sendResponse = function(ctx, err, disableSessionId) {
 
 AuthResource.prototype.handle = function (ctx, next) {
     var config = this.config;
-    
+
     // globally handle logout
     if(ctx.url === '/logout') {
         if (ctx.res.cookies) ctx.res.cookies.set('sid', null, {overwrite: true});
@@ -314,12 +315,26 @@ AuthResource.prototype.handle = function (ctx, next) {
             if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
                 sessionData.userhash = UserCollection.prototype.getUserAndPasswordHash(user);
             }
-            ctx.session.set(sessionData).save(function(err, session) {
-                // apply the sid manually to the session, since only now do we have the id
-                ctx.res.cookies.set('sid', session.id, { overwrite: true });
 
-                return sendResponse(ctx, err, config.disableSessionId);
-            });
+            function setSession() {
+                ctx.session.set(sessionData).save(function(err, session) {
+                    // apply the sid manually to the session, since only now do we have the id
+                    ctx.res.cookies.set('sid', session.id, { overwrite: true });
+
+                    return sendResponse(ctx, err, config.disableSessionId);
+                });
+            }
+
+            var userCollection = process.server.resources.filter(function(res) {
+                return res.config.type === 'UserCollection';
+            })[0];
+
+            if (userCollection.events.Login) {
+                userCollection.events.Login.run(ctx, userCollection.domain, setSession);
+            } else {
+                setSession();
+            }
+
         })(ctx.req, ctx.res, ctx.next||ctx.done);
     } else {
         // nothing matched, sorry
