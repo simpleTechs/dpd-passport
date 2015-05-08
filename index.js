@@ -18,6 +18,13 @@ var Resource = require('deployd/lib/resource'),
     CALLBACK_URL = 'callback',
     DEFAULT_USERS_COLLECTION = 'users';
 
+// Helper function to get the user collection instance given a name
+function getUserCollectionInstance(userCollectionName) {
+    return process.server.resources.filter(function(res) {
+        return res.config.type === 'UserCollection' && res.name === userCollectionName;
+    })[0];
+}
+
 function AuthResource() {
     Resource.apply(this, arguments);
 
@@ -48,9 +55,7 @@ AuthResource.prototype.initPassport = function() {
 
     var config = this.config,
         dpd = internalClient.build(process.server, {isRoot: true}, []),
-        userCollection = process.server.resources.filter(function(res) {
-            return res.config.type === 'UserCollection';
-        })[0],
+        userCollection = getUserCollectionInstance(config.usersCollection);
         passport = (this.passport = require('passport'));
 
 
@@ -326,10 +331,10 @@ AuthResource.prototype.handle = function (ctx, next) {
                 });
             }
 
-            var userCollection = process.server.resources.filter(function(res) {
-                return res.config.type === 'UserCollection';
-            })[0];
 
+            var userCollection = getUserCollectionInstance(config.usersCollection);
+
+            // If the specified user collection has a login event, then run it before returning
             if (userCollection.events.Login) {
                 userCollection.events.Login.run(ctx, userCollection.domain, setSession);
             } else {
