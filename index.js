@@ -15,7 +15,8 @@ var Resource = require('deployd/lib/resource'),
 
     // Globals
     DEFAULT_SALT_LEN = 256,
-    CALLBACK_URL = 'callback';
+    CALLBACK_URL = 'callback',
+    DEFAULT_USERS_COLLECTION = 'users';
 
 function AuthResource() {
     Resource.apply(this, arguments);
@@ -27,6 +28,7 @@ function AuthResource() {
     if(!config.baseURL) {
         debug('baseURL missing, cannot enable any OAuth Module')
     }
+    config.usersCollection = config.usersCollection || DEFAULT_USERS_COLLECTION;
 
     config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
     config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
@@ -83,7 +85,7 @@ AuthResource.prototype.initPassport = function() {
                 saveUser.password = saveUser.username;
             }
             saveUser.$limitRecursion = 1000;
-            dpd.users.put(saveUser, function(res, err) {
+            dpd[config.usersCollection].put(saveUser, function(res, err) {
                 if(err) { return done(err); }
 
                 // before actually progressing the request, we need to clear username + password for social users
@@ -306,7 +308,7 @@ AuthResource.prototype.handle = function (ctx, next) {
             }
 
             var sessionData = {
-                path: '/users',
+                path: '/' + config.usersCollection,
                 uid: user.id
             };
 
@@ -344,6 +346,10 @@ AuthResource.prototype.handle = function (ctx, next) {
 
 AuthResource.basicDashboard = {
   settings: [{
+    name        : 'usersCollection',
+    type        : 'text',
+    description : 'This is the name of the Users Collection, make sure the Collection exists before changing! Defaults to users.'
+  },{
     name        : 'SALT_LEN',
     type        : 'numeric',
     description : 'Length of the Password salt that is used by deployd. Do not change if you don\'t know what this is or your users may not login anymore! Defaults to 256.'
