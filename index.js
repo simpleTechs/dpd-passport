@@ -306,9 +306,21 @@ AuthResource.prototype.handle = function (ctx, next) {
 
         this.initPassport();
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
+            var userCollection = getUserCollectionInstance(config.usersCollection);
+            var domain =  userCollection.domain;
+
             if (err || !user) {
                 debug('passport reported error: ', err, user, info);
                 console.error(err);
+                if (!user) {
+                    // If the specified user collection has a login event, then run it before returning
+                    if (userCollection.events.Login) {
+                        domain.success = false;
+                        userCollection.events.Login.run(ctx, domain, function() {
+                            return sendResponse(ctx, 'bad credentials', config.disableSessionId);
+                        });
+                    }
+                }
                 return sendResponse(ctx, 'bad credentials', config.disableSessionId);
             }
 
@@ -331,12 +343,10 @@ AuthResource.prototype.handle = function (ctx, next) {
                 });
             }
 
-
-            var userCollection = getUserCollectionInstance(config.usersCollection);
-
             // If the specified user collection has a login event, then run it before returning
             if (userCollection.events.Login) {
-                userCollection.events.Login.run(ctx, userCollection.domain, setSession);
+                domain.success = true;
+                userCollection.events.Login.run(ctx, domain, setSession);
             } else {
                 setSession();
             }
