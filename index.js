@@ -15,7 +15,15 @@ var Resource = require('deployd/lib/resource'),
 
     // Globals
     DEFAULT_SALT_LEN = 256,
-    CALLBACK_URL = 'callback';
+    CALLBACK_URL = 'callback',
+    DEFAULT_USERS_COLLECTION = 'users';
+
+// Helper function to get the user collection instance given a name
+function getUserCollectionInstance(userCollectionName) {
+    return process.server.resources.filter(function(res) {
+        return res.config.type === 'UserCollection' && res.name === userCollectionName;
+    })[0];
+}
 
 function AuthResource() {
     Resource.apply(this, arguments);
@@ -27,6 +35,7 @@ function AuthResource() {
     if(!config.baseURL) {
         debug('baseURL missing, cannot enable any OAuth Module')
     }
+    config.usersCollection = config.usersCollection || DEFAULT_USERS_COLLECTION;
 
     config.allowTwitter = config.allowTwitter && config.baseURL && config.twitterConsumerKey && config.twitterConsumerSecret;
     config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
@@ -46,9 +55,7 @@ AuthResource.prototype.initPassport = function() {
 
     var config = this.config,
         dpd = internalClient.build(process.server, {isRoot: true}, []),
-        userCollection = process.server.resources.filter(function(res) {
-            return res.config.type === 'UserCollection';
-        })[0],
+        userCollection = getUserCollectionInstance(config.usersCollection);
         passport = (this.passport = require('passport'));
 
 
@@ -83,7 +90,7 @@ AuthResource.prototype.initPassport = function() {
                 saveUser.password = saveUser.username;
             }
             saveUser.$limitRecursion = 1000;
-            dpd.users.put(saveUser, function(res, err) {
+            dpd[config.usersCollection].put(saveUser, function(res, err) {
                 if(err) { return done(err); }
 
                 // before actually progressing the request, we need to clear username + password for social users
@@ -220,7 +227,7 @@ var sendResponse = function(ctx, err, disableSessionId) {
 
 AuthResource.prototype.handle = function (ctx, next) {
     var config = this.config;
-    
+
     // globally handle logout
     if(ctx.url === '/logout') {
         if (ctx.res.cookies) ctx.res.cookies.set('sid', null, {overwrite: true});
@@ -299,14 +306,26 @@ AuthResource.prototype.handle = function (ctx, next) {
 
         this.initPassport();
         this.passport.authenticate(requestedModule, options, function(err, user, info) {
+            var userCollection = getUserCollectionInstance(config.usersCollection);
+            var domain =  userCollection.domain;
+
             if (err || !user) {
                 debug('passport reported error: ', err, user, info);
                 console.error(err);
+                if (!user) {
+                    // If the specified user collection has a login event, then run it before returning
+                    if (userCollection.events.Login) {
+                        domain.success = false;
+                        userCollection.events.Login.run(ctx, domain, function() {
+                            return sendResponse(ctx, 'bad credentials', config.disableSessionId);
+                        });
+                    }
+                }
                 return sendResponse(ctx, 'bad credentials', config.disableSessionId);
             }
 
             var sessionData = {
-                path: '/users',
+                path: '/' + config.usersCollection,
                 uid: user.id
             };
 
@@ -314,12 +333,24 @@ AuthResource.prototype.handle = function (ctx, next) {
             if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
                 sessionData.userhash = UserCollection.prototype.getUserAndPasswordHash(user);
             }
-            ctx.session.set(sessionData).save(function(err, session) {
-                // apply the sid manually to the session, since only now do we have the id
-                ctx.res.cookies.set('sid', session.id, { overwrite: true });
 
-                return sendResponse(ctx, err, config.disableSessionId);
-            });
+            function setSession() {
+                ctx.session.set(sessionData).save(function(err, session) {
+                    // apply the sid manually to the session, since only now do we have the id
+                    ctx.res.cookies.set('sid', session.id, { overwrite: true });
+
+                    return sendResponse(ctx, err, config.disableSessionId);
+                });
+            }
+
+            // If the specified user collection has a login event, then run it before returning
+            if (userCollection.events.Login) {
+                domain.success = true;
+                userCollection.events.Login.run(ctx, domain, setSession);
+            } else {
+                setSession();
+            }
+
         })(ctx.req, ctx.res, ctx.next||ctx.done);
     } else {
         // nothing matched, sorry
@@ -330,6 +361,10 @@ AuthResource.prototype.handle = function (ctx, next) {
 
 AuthResource.basicDashboard = {
   settings: [{
+    name        : 'usersCollection',
+    type        : 'text',
+    description : 'This is the name of the Users Collection, make sure the Collection exists before changing! Defaults to users.'
+  },{
     name        : 'SALT_LEN',
     type        : 'numeric',
     description : 'Length of the Password salt that is used by deployd. Do not change if you don\'t know what this is or your users may not login anymore! Defaults to 256.'
