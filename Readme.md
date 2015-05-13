@@ -99,3 +99,4 @@ Auth-Passport is the work of [simpleTechs.net](https://www.simpletechs.net)
 The following people contributed some of there valuable spare time to make this module even better. Please add yourself to the list, in case we forgot you.
 
 * [Tristan](https://github.com/tmcnab)
+* [Andy](https://github.com/hongkongkiwi)
