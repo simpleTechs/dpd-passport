@@ -55,7 +55,7 @@ if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
         if(user.socialAccountId && user.socialAccount){
             return user.socialAccount+user.socialAccountId;
         } 
-        return _getUserAndPasswordHash.apply(UserCollection, arguments);
+        return _getUserAndPasswordHash.apply(this, arguments);
     };
 }
 
@@ -69,9 +69,6 @@ AuthResource.prototype.initPassport = function() {
         userCollection = getUserCollectionInstance(config.usersCollection);
         passport = (this.passport = require('passport'));
 
-
-
-    
     // Will be called when socialLogins are done
     // Check for existing user and update
     // or create new user and insert
