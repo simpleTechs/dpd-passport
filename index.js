@@ -48,6 +48,17 @@ AuthResource.label = "Passport-Auth";
 AuthResource.defaultPath = '/auth';
 module.exports = AuthResource;
 
+// be backwards compatible here, check if the function already exists
+if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
+    var _getUserAndPasswordHash = UserCollection.prototype.getUserAndPasswordHash;
+    UserCollection.prototype.getUserAndPasswordHash = function(user){
+        if(user.socialAccountId && user.socialAccount){
+            return user.socialAccount+user.socialAccountId;
+        } 
+        return _getUserAndPasswordHash.apply(this, arguments);
+    };
+}
+
 AuthResource.prototype.clientGeneration = false;
 
 AuthResource.prototype.initPassport = function() {
@@ -57,8 +68,6 @@ AuthResource.prototype.initPassport = function() {
         dpd = internalClient.build(process.server, {isRoot: true}, []),
         userCollection = getUserCollectionInstance(config.usersCollection);
         passport = (this.passport = require('passport'));
-
-
 
     // Will be called when socialLogins are done
     // Check for existing user and update
