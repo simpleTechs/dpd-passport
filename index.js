@@ -82,7 +82,12 @@ AuthResource.prototype.initPassport = function() {
                 // these properties will only be set on first insert
                 socialAccountId: profile.id,
                 socialAccount: profile.provider,
-                name: profile.displayName
+                name: profile.displayName,
+
+                // we need to fake the password here, because deployd will force us to on create
+                // There is no other way around the required checks for username and password.
+                username: profile.provider + '_' + profile.id,
+                password: 'invalidHash '+profile.id
             };
 
             // update the profile on every login, so that we always have the latest info available
@@ -90,16 +95,19 @@ AuthResource.prototype.initPassport = function() {
 
             if(user) {
                 debug('updating existing user w/ id', user.id, profile);
-                userCollection.store.update(user.id, {profile: profile}, function(err, res){
+                var update = {profile: profile};
+
+                // backwards compatibility
+                if(!user.password) update.password = saveUser.password;
+                if(!user.username) update.username = saveUser.username;
+                
+                userCollection.store.update(user.id, update, function(err, res){
                     debug('updated profile for user');
+                    delete saveUser.password;
                     done(null, saveUser);
                 });
             } else { // new user
 
-                // we need to fake the password here, because deployd will force us to on create
-                // There is no other way around the required checks for username and password.
-                saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
-                saveUser.password = 'invalidHash '+saveUser.socialAccountId; 
                 debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
                 saveUser.$limitRecursion = 1000;
 

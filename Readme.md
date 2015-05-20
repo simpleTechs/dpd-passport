@@ -51,6 +51,13 @@ Others can be implemented easily if Passport supports them.
         }
     }
 ```
+### Notice
+
+In order to avoid the checks for username and password, dpd-passport creates a dummy username and a password hash. That makes it impossible to login locally, but are visible in the deployd backend and **must not be edited**!
+
+#### Updating from v0.3.0 or lower
+
+To avoid error for existing users after the update, every user has to login again before any updates of the user object can be achieved.
 
 ### Installation
 
