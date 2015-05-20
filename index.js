@@ -85,19 +85,19 @@ AuthResource.prototype.initPassport = function() {
                     password: 'invalidHash '+profile.id
                 },
                 saveUser = user || {
-                // these properties will only be set on first insert
-                socialAccountId: profile.id,
-                socialAccount: profile.provider,
-                name: profile.displayName,
-                username: fakeLogin.username,
-                password: fakeLogin.password
-            };
+                    // these properties will only be set on first insert
+                    socialAccountId: profile.id,
+                    socialAccount: profile.provider,
+                    name: profile.displayName,
+                    username: fakeLogin.username,
+                    password: fakeLogin.password
+                };
 
             // update the profile on every login, so that we always have the latest info available
             saveUser.profile = profile;
 
             if(user) {
-                debug('updating existing user w/ id', user.id, profile);
+                debug('updating existing user w/ id %s', user.id, profile);
                 var update = {profile: profile};
 
                 // backwards compatibility
@@ -109,9 +109,9 @@ AuthResource.prototype.initPassport = function() {
                     delete saveUser.password;
                     done(null, saveUser);
                 });
-            } else { // new user
-
-                debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
+            } else { 
+                // new user
+                debug('creating new user w/ socialAccountId %s', saveUser.socialAccountId, profile);
                 saveUser.$limitRecursion = 1000;
 
                 // will run deployd post events
@@ -120,7 +120,8 @@ AuthResource.prototype.initPassport = function() {
 
                     // set the password hash to something that is not a valid hash which bypasses deployds checks (i.e. user can never login via password)
                     userCollection.store.update({id: res.id}, {password: saveUser.password}, function() {
-                        done(null, res||saveUser);
+                        delete saveUser.password;
+                        done(null, saveUser);
                     });
                 });
             }
