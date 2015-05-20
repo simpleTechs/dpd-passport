@@ -89,24 +89,30 @@ AuthResource.prototype.initPassport = function() {
             saveUser.profile = profile;
 
             if(user) {
-                debug('updating existing user w/ id', user.id);
-            } else {
-                debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
+                debug('updating existing user w/ id', user.id, profile);
+                userCollection.store.update(user.id, {profile: profile}, function(err, res){
+                    debug('updated profile for user');
+                    done(null, saveUser);
+                });
+            } else { // new user
 
                 // we need to fake the password here, because deployd will force us to on create
-                // but we'll clear that later
+                // There is no other way around the required checks for username and password.
                 saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
-                saveUser.password = saveUser.username;
-            }
-            saveUser.$limitRecursion = 1000;
-            dpd[config.usersCollection].put(saveUser, function(res, err) {
-                if(err) { return done(err); }
+                saveUser.password = 'invalidHash '+saveUser.socialAccountId; 
+                debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
+                saveUser.$limitRecursion = 1000;
 
-                // before actually progressing the request, we need to clear username + password for social users
-                userCollection.store.update({id: res.id}, {username: null, password: null}, function() {
-                    done(null, res||saveUser);
+                // will run deployd post events
+                dpd[config.usersCollection].post(saveUser, function(res, err) {
+                    if(err) { return done(err); }
+
+                    // update password to a string that can never be hashed to by bypassing deployds checks to 
+                    userCollection.store.update({id: res.id}, {username: saveUser.username, password: saveUser.password}, function() {
+                        done(null, res||saveUser);
+                    });
                 });
-            });
+            }
         });
     };
 
