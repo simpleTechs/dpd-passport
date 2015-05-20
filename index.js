@@ -190,8 +190,8 @@ AuthResource.prototype.initPassport = function() {
 };
 
 var sendResponse = function(ctx, err, disableSessionId) {
-    var returnUrl = (ctx.req.cookies && ctx.req.cookies.get('_passportReturnUrl')) || {};
-    var sessionData = ctx.session;
+    var returnUrl = (ctx.req.cookies && ctx.req.cookies.get('_passportReturnUrl')) || null;
+    var sessionData = ctx.session.data;
     if(returnUrl) {
         var redirectURL = url.parse(returnUrl, true);
         // delete search so that query is used
@@ -208,8 +208,8 @@ var sendResponse = function(ctx, err, disableSessionId) {
             redirectURL.query.success = true;
 
             if(!disableSessionId) {
-                redirectURL.query.sid = sessionData.data.id;
-                redirectURL.query.uid = sessionData.data.uid;
+                redirectURL.query.sid = sessionData.id;
+                redirectURL.query.uid = sessionData.uid;
             }
         }
 
