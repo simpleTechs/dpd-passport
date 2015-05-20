@@ -78,16 +78,19 @@ AuthResource.prototype.initPassport = function() {
         userCollection.store.first({socialAccountId: profile.id}, function(err, user) {
             if(err) { return done(err); }
 
-            var saveUser = user || {
+            // we need to fake the password here, because deployd will force us to on create
+            // There is no other way around the required checks for username and password.
+            var fakeLogin = {
+                    username: profile.provider + '_' + profile.id,
+                    password: 'invalidHash '+profile.id
+                },
+                saveUser = user || {
                 // these properties will only be set on first insert
                 socialAccountId: profile.id,
                 socialAccount: profile.provider,
                 name: profile.displayName,
-
-                // we need to fake the password here, because deployd will force us to on create
-                // There is no other way around the required checks for username and password.
-                username: profile.provider + '_' + profile.id,
-                password: 'invalidHash '+profile.id
+                username: fakeLogin.username,
+                password: fakeLogin.password
             };
 
             // update the profile on every login, so that we always have the latest info available
@@ -98,8 +101,8 @@ AuthResource.prototype.initPassport = function() {
                 var update = {profile: profile};
 
                 // backwards compatibility
-                if(!user.password) update.password = saveUser.password;
-                if(!user.username) update.username = saveUser.username;
+                if(!user.password) update.password = fakeLogin.password;
+                if(!user.username) update.username = fakeLogin.username;
                 
                 userCollection.store.update(user.id, update, function(err, res){
                     debug('updated profile for user');
@@ -115,8 +118,8 @@ AuthResource.prototype.initPassport = function() {
                 dpd[config.usersCollection].post(saveUser, function(res, err) {
                     if(err) { return done(err); }
 
-                    // update password to a string that can never be hashed to by bypassing deployds checks to 
-                    userCollection.store.update({id: res.id}, {username: saveUser.username, password: saveUser.password}, function() {
+                    // set the password hash to something that is not a valid hash which bypasses deployds checks (i.e. user can never login via password)
+                    userCollection.store.update({id: res.id}, {password: saveUser.password}, function() {
                         done(null, res||saveUser);
                     });
                 });
