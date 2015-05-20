@@ -106,6 +106,8 @@ AuthResource.prototype.initPassport = function() {
                 
                 userCollection.store.update(user.id, update, function(err, res){
                     debug('updated profile for user');
+                    
+                    // cleanup before responding
                     delete saveUser.password;
                     done(null, saveUser);
                 });
@@ -120,7 +122,12 @@ AuthResource.prototype.initPassport = function() {
 
                     // set the password hash to something that is not a valid hash which bypasses deployds checks (i.e. user can never login via password)
                     userCollection.store.update({id: res.id}, {password: saveUser.password}, function() {
+                        debug('created profile for user');
+                        
+                        // cleanup before responding
+                        saveUser.id = res.id;
                         delete saveUser.password;
+
                         done(null, saveUser);
                     });
                 });
