@@ -78,35 +78,53 @@ AuthResource.prototype.initPassport = function() {
         userCollection.store.first({socialAccountId: profile.id}, function(err, user) {
             if(err) { return done(err); }
 
-            var saveUser = user || {
-                // these properties will only be set on first insert
-                socialAccountId: profile.id,
-                socialAccount: profile.provider,
-                name: profile.displayName
-            };
+            // we need to fake the password here, because deployd will force us to on create
+            // There is no other way around the required checks for username and password.
+            var fakeLogin = {
+                    username: profile.provider + '_' + profile.id,
+                    password: 'invalidHash '+profile.id
+                },
+                saveUser = user || {
+                    // these properties will only be set on first insert
+                    socialAccountId: profile.id,
+                    socialAccount: profile.provider,
+                    name: profile.displayName,
+                    username: fakeLogin.username,
+                    password: fakeLogin.password
+                };
 
             // update the profile on every login, so that we always have the latest info available
             saveUser.profile = profile;
 
             if(user) {
-                debug('updating existing user w/ id', user.id);
-            } else {
-                debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
+                debug('updating existing user w/ id %s', user.id, profile);
+                var update = {profile: profile};
 
-                // we need to fake the password here, because deployd will force us to on create
-                // but we'll clear that later
-                saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
-                saveUser.password = saveUser.username;
-            }
-            saveUser.$limitRecursion = 1000;
-            dpd[config.usersCollection].put(saveUser, function(res, err) {
-                if(err) { return done(err); }
-
-                // before actually progressing the request, we need to clear username + password for social users
-                userCollection.store.update({id: res.id}, {username: null, password: null}, function() {
-                    done(null, res||saveUser);
+                // backwards compatibility
+                if(!user.password) update.password = fakeLogin.password;
+                if(!user.username) update.username = fakeLogin.username;
+                
+                userCollection.store.update(user.id, update, function(err, res){
+                    debug('updated profile for user');
+                    delete saveUser.password;
+                    done(null, saveUser);
                 });
-            });
+            } else { 
+                // new user
+                debug('creating new user w/ socialAccountId %s', saveUser.socialAccountId, profile);
+                saveUser.$limitRecursion = 1000;
+
+                // will run deployd post events
+                dpd[config.usersCollection].post(saveUser, function(res, err) {
+                    if(err) { return done(err); }
+
+                    // set the password hash to something that is not a valid hash which bypasses deployds checks (i.e. user can never login via password)
+                    userCollection.store.update({id: res.id}, {password: saveUser.password}, function() {
+                        delete saveUser.password;
+                        done(null, saveUser);
+                    });
+                });
+            }
         });
     };
 
