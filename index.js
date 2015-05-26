@@ -48,17 +48,6 @@ AuthResource.label = "Passport-Auth";
 AuthResource.defaultPath = '/auth';
 module.exports = AuthResource;
 
-// be backwards compatible here, check if the function already exists
-if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
-    var _getUserAndPasswordHash = UserCollection.prototype.getUserAndPasswordHash;
-    UserCollection.prototype.getUserAndPasswordHash = function(user){
-        if(user.socialAccountId && user.socialAccount){
-            return user.socialAccount+user.socialAccountId;
-        } 
-        return _getUserAndPasswordHash.apply(this, arguments);
-    };
-}
-
 AuthResource.prototype.clientGeneration = false;
 
 AuthResource.prototype.initPassport = function() {
@@ -103,15 +92,13 @@ AuthResource.prototype.initPassport = function() {
                 // backwards compatibility
                 if(!user.password) update.password = fakeLogin.password;
                 if(!user.username) update.username = fakeLogin.username;
-                
+
                 userCollection.store.update(user.id, update, function(err, res){
                     debug('updated profile for user');
-                    
-                    // cleanup before responding
-                    delete saveUser.password;
+
                     done(null, saveUser);
                 });
-            } else { 
+            } else {
                 // new user
                 debug('creating new user w/ socialAccountId %s', saveUser.socialAccountId, profile);
                 saveUser.$limitRecursion = 1000;
@@ -123,10 +110,9 @@ AuthResource.prototype.initPassport = function() {
                     // set the password hash to something that is not a valid hash which bypasses deployds checks (i.e. user can never login via password)
                     userCollection.store.update({id: res.id}, {password: saveUser.password}, function() {
                         debug('created profile for user');
-                        
+
                         // cleanup before responding
                         saveUser.id = res.id;
-                        delete saveUser.password;
 
                         done(null, saveUser);
                     });
@@ -215,8 +201,10 @@ AuthResource.prototype.initPassport = function() {
 
 var sendResponse = function(ctx, err, disableSessionId) {
     var sessionData = ctx.session.data;
-    if(sessionData.redirectURL) {
-        var redirectURL = url.parse(sessionData.redirectURL, true);
+    var returnUrl = (ctx.req.cookies && ctx.req.cookies.get('_passportReturnUrl')) || null;
+
+    if(returnUrl) {
+        var redirectURL = url.parse(returnUrl, true);
         // delete search so that query is used
         delete redirectURL.search;
 
@@ -325,11 +313,11 @@ AuthResource.prototype.handle = function (ctx, next) {
         // save the redirectURL for later use
         if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
             try {
-                this.regEx = this.regEx || new RegExp(this.config.allowedRedirectURLs, 'i');
+                this.regEx = this.regEx || new RegExp(this.config.allowedRedirectURLs, 'i');
 
                 if(ctx.query.redirectURL.match(this.regEx)) {
                     // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
-                    ctx.session.set({redirectURL: ctx.query.redirectURL});
+                    if (ctx.res.cookies) ctx.res.cookies.set('_passportReturnUrl', ctx.query.redirectURL);
                 } else {
                     debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
                 }
@@ -367,6 +355,7 @@ AuthResource.prototype.handle = function (ctx, next) {
             if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
                 sessionData.userhash = UserCollection.prototype.getUserAndPasswordHash(user);
             }
+            delete user.password;
 
             function setSession() {
                 ctx.session.set(sessionData).save(function(err, session) {
