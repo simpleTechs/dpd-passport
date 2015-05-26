@@ -2,7 +2,6 @@ var Resource = require('deployd/lib/resource'),
     Script = require('deployd/lib/script'),
     UserCollection = require('deployd/lib/resources/user-collection'),
     internalClient = require('deployd/lib/internal-client'),
-    uuid = require('deployd/lib/util/uuid.js'),
     util = require('util'),
     url = require('url'),
     debug = require('debug')('dpd-passport'),
@@ -55,7 +54,7 @@ if(typeof UserCollection.prototype.getUserAndPasswordHash === 'function') {
     UserCollection.prototype.getUserAndPasswordHash = function(user){
         if(user.socialAccountId && user.socialAccount){
             return user.socialAccount+user.socialAccountId;
-        }
+        } 
         return _getUserAndPasswordHash.apply(this, arguments);
     };
 }
@@ -79,35 +78,60 @@ AuthResource.prototype.initPassport = function() {
         userCollection.store.first({socialAccountId: profile.id}, function(err, user) {
             if(err) { return done(err); }
 
-            var saveUser = user || {
-                // these properties will only be set on first insert
-                socialAccountId: profile.id,
-                socialAccount: profile.provider,
-                name: profile.displayName
-            };
+            // we need to fake the password here, because deployd will force us to on create
+            // There is no other way around the required checks for username and password.
+            var fakeLogin = {
+                    username: profile.provider + '_' + profile.id,
+                    password: 'invalidHash '+profile.id
+                },
+                saveUser = user || {
+                    // these properties will only be set on first insert
+                    socialAccountId: profile.id,
+                    socialAccount: profile.provider,
+                    name: profile.displayName,
+                    username: fakeLogin.username,
+                    password: fakeLogin.password
+                };
 
             // update the profile on every login, so that we always have the latest info available
             saveUser.profile = profile;
 
             if(user) {
-                debug('updating existing user w/ id', user.id);
-            } else {
-                debug('creating new user w/ socialAccountId=%s', saveUser.socialAccountId);
+                debug('updating existing user w/ id %s', user.id, profile);
+                var update = {profile: profile};
 
-                // generate random password
-                saveUser.username = saveUser.socialAccount + '_' + saveUser.socialAccountId;
-                saveUser.password = uuid.create(128);
-            }
-            saveUser.$limitRecursion = 1000;
-            dpd[config.usersCollection].put(saveUser, function(res, err) {
-                if(err) { return done(err); }
-
-                // set the password hash to something that is not a valid hash which bypasses deployds checks (i.e. user can never login via password)
-                userCollection.store.update({id: res.id}, {password: 'invalidhash-' + uuid.create(128)}, function() {
+                // backwards compatibility
+                if(!user.password) update.password = fakeLogin.password;
+                if(!user.username) update.username = fakeLogin.username;
+                
+                userCollection.store.update(user.id, update, function(err, res){
+                    debug('updated profile for user');
+                    
+                    // cleanup before responding
                     delete saveUser.password;
                     done(null, saveUser);
                 });
-            });
+            } else { 
+                // new user
+                debug('creating new user w/ socialAccountId %s', saveUser.socialAccountId, profile);
+                saveUser.$limitRecursion = 1000;
+
+                // will run deployd post events
+                dpd[config.usersCollection].post(saveUser, function(res, err) {
+                    if(err) { return done(err); }
+
+                    // set the password hash to something that is not a valid hash which bypasses deployds checks (i.e. user can never login via password)
+                    userCollection.store.update({id: res.id}, {password: saveUser.password}, function() {
+                        debug('created profile for user');
+                        
+                        // cleanup before responding
+                        saveUser.id = res.id;
+                        delete saveUser.password;
+
+                        done(null, saveUser);
+                    });
+                });
+            }
         });
     };
 
@@ -190,10 +214,9 @@ AuthResource.prototype.initPassport = function() {
 };
 
 var sendResponse = function(ctx, err, disableSessionId) {
-    var returnUrl = (ctx.req.cookies && ctx.req.cookies.get('_passportReturnUrl')) || null;
     var sessionData = ctx.session.data;
-    if(returnUrl) {
-        var redirectURL = url.parse(returnUrl, true);
+    if(sessionData.redirectURL) {
+        var redirectURL = url.parse(sessionData.redirectURL, true);
         // delete search so that query is used
         delete redirectURL.search;
 
@@ -302,11 +325,11 @@ AuthResource.prototype.handle = function (ctx, next) {
         // save the redirectURL for later use
         if(ctx.query.redirectURL && this.config.allowedRedirectURLs) {
             try {
-                this.regEx = this.regEx || new RegExp(this.config.allowedRedirectURLs, 'i');
+                this.regEx = this.regEx || new RegExp(this.config.allowedRedirectURLs, 'i');
 
                 if(ctx.query.redirectURL.match(this.regEx)) {
                     // save this info into the users session, so that we can access it later (even if the user was redirected to facebook)
-                    if (ctx.res.cookies) ctx.res.cookies.set('_passportReturnUrl', ctx.query.redirectURL);
+                    ctx.session.set({redirectURL: ctx.query.redirectURL});
                 } else {
                     debug(ctx.query.redirectURL, 'did not match', this.config.allowedRedirectURLs);
                 }
