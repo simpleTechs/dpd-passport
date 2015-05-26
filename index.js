@@ -199,28 +199,31 @@ AuthResource.prototype.initPassport = function() {
     this.initialized = true;
 };
 
-var sendResponse = function(ctx, err, disableSessionId) {
+var sendResponse = function(ctx, err, config) {
     var sessionData = ctx.session.data;
     var returnUrl = (ctx.req.cookies && ctx.req.cookies.get('_passportReturnUrl')) || null;
 
     if(returnUrl) {
         var redirectURL = url.parse(returnUrl, true);
-        // delete search so that query is used
-        delete redirectURL.search;
 
-        // make sure query is inited
-        redirectURL.query = redirectURL.query || {};
+        // only append if not disabled
+        if(!config.disableReturnParams) {
+            // delete search so that query is used
+            delete redirectURL.search;
 
-        if(err) {
-            redirectURL.query.success = false;
-            redirectURL.query.error = err;
-        } else {
-            // append user + session id to the redirect url
-            redirectURL.query.success = true;
+            // make sure query is inited
+            redirectURL.query = redirectURL.query || {};
+            if(err) {
+                redirectURL.query.success = false;
+                redirectURL.query.error = err;
+            } else {
+                // append user + session id to the redirect url
+                redirectURL.query.success = true;
 
-            if(!disableSessionId) {
-                redirectURL.query.sid = sessionData.id;
-                redirectURL.query.uid = sessionData.uid;
+                if(!config.disableSessionId) {
+                    redirectURL.query.sid = sessionData.id;
+                    redirectURL.query.uid = sessionData.uid;
+                }
             }
         }
 
@@ -247,7 +250,7 @@ var sendResponse = function(ctx, err, disableSessionId) {
     }
 };
 
-AuthResource.prototype.handle = function (ctx, next) {
+AuthResource.prototype.handle = function(ctx, next) {
     var config = this.config;
 
     // globally handle logout
@@ -339,11 +342,11 @@ AuthResource.prototype.handle = function (ctx, next) {
                     if (userCollection.events.Login) {
                         domain.success = false;
                         userCollection.events.Login.run(ctx, domain, function() {
-                            return sendResponse(ctx, 'bad credentials', config.disableSessionId);
+                            return sendResponse(ctx, 'bad credentials', config);
                         });
                     }
                 }
-                return sendResponse(ctx, 'bad credentials', config.disableSessionId);
+                return sendResponse(ctx, 'bad credentials', config);
             }
 
             var sessionData = {
@@ -362,7 +365,7 @@ AuthResource.prototype.handle = function (ctx, next) {
                     // apply the sid manually to the session, since only now do we have the id
                     ctx.res.cookies.set('sid', session.id, { overwrite: true });
 
-                    return sendResponse(ctx, err, config.disableSessionId);
+                    return sendResponse(ctx, err, config);
                 });
             }
 
@@ -378,7 +381,7 @@ AuthResource.prototype.handle = function (ctx, next) {
     } else {
         // nothing matched, sorry
         console.error('no module found: %s', parts[0]);
-        return sendResponse(ctx, 'bad credentials', config.disableSessionId);
+        return sendResponse(ctx, 'bad credentials', config);
     }
 };
 
@@ -403,6 +406,10 @@ AuthResource.basicDashboard = {
     name        : 'disableSessionId',
     type        : 'checkbox',
     description : 'Disable appending the Session Id to the redirect URL. This is a security measure for the web. You can access the Session Id from the Cookie-Header.'
+  },{
+    name        : 'disableReturnParams',
+    type        : 'checkbox',
+    description : 'Disable appending the success/error to your URL. This is for the times you have a framework like AngularJS that controls your routing. You can access the user from the Users Collection\'s "/me".'
   },{
     name        : 'allowLocal',
     type        : 'checkbox',
