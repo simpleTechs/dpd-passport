@@ -12,6 +12,7 @@ var Resource = require('deployd/lib/resource'),
     FacebookStrategy = require('passport-facebook').Strategy,
     GitHubStrategy = require('passport-github').Strategy,
     GoogleStrategy = require('passport-google-oauth').OAuth2Strategy,
+    DribbbleStrategy = require('passport-dribbble').Strategy,
 
     // Globals
     DEFAULT_SALT_LEN = 256,
@@ -41,6 +42,7 @@ function AuthResource() {
     config.allowFacebook = config.allowFacebook && config.baseURL && config.facebookAppId && config.facebookAppSecret;
     config.allowGitHub = config.allowGitHub && config.baseURL && config.githubClientId && config.githubClientSecret;
     config.allowGoogle = config.allowGoogle && config.baseURL && config.googleClientId && config.googleClientSecret;
+    config.allowDribbble = config.allowDribbble && config.baseURL && config.dribbbbleClientId && config.dribbbbleClientSecret;
 }
 util.inherits(AuthResource, Resource);
 
@@ -64,7 +66,7 @@ AuthResource.prototype.initPassport = function() {
     var socialAuthCallback = function(token, tokenSecret, profile, done) {
         debug('Login callback - profile: %j', profile);
 
-        userCollection.store.first({socialAccountId: profile.id}, function(err, user) {
+        userCollection.store.first({socialAccountId: String(profile.id)}, function(err, user) {
             if(err) { return done(err); }
 
             // we need to fake the password here, because deployd will force us to on create
@@ -196,6 +198,19 @@ AuthResource.prototype.initPassport = function() {
         ));
     }
 
+    if(config.allowDribbble) {
+        var cbURL = url.resolve(config.baseURL, this.path + '/dribbble/' + CALLBACK_URL);
+
+        debug('Initializing Dribbble Login, cb: %s', cbURL);
+        passport.use(new DribbbleStrategy({
+            clientID: config.dribbbbleClientId,
+            clientSecret: config.dribbbbleClientSecret,
+            callbackURL: cbURL
+          },
+          socialAuthCallback
+        ));
+    }
+
     this.initialized = true;
 };
 
@@ -306,6 +321,11 @@ AuthResource.prototype.handle = function(ctx, next) {
             if(this.config.allowGoogle) {
                 requestedModule = 'google';
                 options.scope = this.config.googleScope || 'profile email';
+            }
+            break;
+        case 'dribbble':
+            if(this.config.allowDribbble) {
+                requestedModule = 'dribbble';
             }
             break;
         default:
@@ -431,6 +451,10 @@ AuthResource.basicDashboard = {
     type        : 'checkbox',
     description : 'Allow users to login via Google'
   },{
+    name        : 'allowDribbble',
+    type        : 'checkbox',
+    description : 'Allow users to login via Dribbble'
+  }, {
     name        : 'twitterConsumerKey',
     type        : 'text'/*,
     description : 'TWITTER_CONSUMER_KEY'*/
@@ -472,6 +496,11 @@ AuthResource.basicDashboard = {
     name        : 'googleScope',
     type        : 'text',
     description : 'defaults to "profile email"'
-  }
-  ]
+  } ,{
+    name        : 'dribbbbleClientId',
+    type        : 'text'
+  }, {
+    name        : 'dribbbbleClientSecret',
+    type        : 'text'
+  }]
 };

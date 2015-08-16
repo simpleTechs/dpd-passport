@@ -8,6 +8,7 @@ Currently, the following methods are supported for authentification:
 * **Facebook** (using OAuth)
 * **GitHub**
 * **Google**
+* **Dribbble**
 
 Others can be implemented easily if Passport supports them.
 
@@ -108,3 +109,4 @@ The following people contributed some of there valuable spare time to make this 
 * [Tristan](https://github.com/tmcnab)
 * [Andy](https://github.com/hongkongkiwi)
 * [Andrei](https://github.com/andreialecu)
+* [Burak](https://github.com/burakcan)
