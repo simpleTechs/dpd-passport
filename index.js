@@ -77,7 +77,7 @@ AuthResource.prototype.initPassport = function() {
                 },
                 saveUser = user || {
                     // these properties will only be set on first insert
-                    socialAccountId: profile.id,
+                    socialAccountId: String(profile.id),
                     socialAccount: profile.provider,
                     name: profile.displayName,
                     username: fakeLogin.username,
