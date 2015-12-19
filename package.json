@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://bitbucket.org/simpletechs/dpd-passport"
+    "url": "git+https://bitbucket.org/simpletechs/dpd-passport.git"
   },
   "keywords": [
     "deployd",
@@ -19,18 +19,46 @@
     "github",
     "google",
     "twitter",
-    "dribbble"
+    "dribbble",
+    "weibo"
   ],
-  "author": "Fabian Off, simpleTechs.net <fabian@simpletechs.net>",
+  "author": {
+    "name": "Fabian Off, simpleTechs.net",
+    "email": "fabian@simpletechs.net"
+  },
   "license": "FreeBSD",
   "dependencies": {
-    "passport-local": "^1.0.0",
-    "passport": "^0.2.0",
-    "passport-facebook": "^1.0.3",
-    "passport-google-oauth": "^0.1.5",
-    "passport-twitter": "^1.0.2",
     "debug": "^0.7.4",
+    "passport": "^0.2.0",
+    "passport-dribbble": "^1.0.1",
+    "passport-facebook": "^1.0.3",
     "passport-github": "^0.1.5",
-    "passport-dribbble": "^1.0.1"
-  }
+    "passport-google-oauth": "^0.1.5",
+    "passport-local": "^1.0.0",
+    "passport-twitter": "^1.0.2",
+    "passport-weibo": "^0.1.2"
+  },
+  "gitHead": "209402a9ff55f097b34db46645373f3d23a0e373",
+  "homepage": "https://bitbucket.org/simpletechs/dpd-passport#readme",
+  "_id": "dpd-passport@0.3.5",
+  "_shasum": "ba1a6795f7494e8ed65b093181d2e22b7a5251fa",
+  "_from": "dpd-passport@*",
+  "_npmVersion": "2.12.1",
+  "_nodeVersion": "0.12.7",
+  "_npmUser": {
+    "name": "simpletechs",
+    "email": "info+npm@simpletechs.net"
+  },
+  "maintainers": [
+    {
+      "name": "simpletechs",
+      "email": "info+npm@simpletechs.net"
+    }
+  ],
+  "dist": {
+    "shasum": "ba1a6795f7494e8ed65b093181d2e22b7a5251fa",
+    "tarball": "http://registry.npmjs.org/dpd-passport/-/dpd-passport-0.3.5.tgz"
+  },
+  "directories": {},
+  "_resolved": "https://registry.npmjs.org/dpd-passport/-/dpd-passport-0.3.5.tgz"
 }

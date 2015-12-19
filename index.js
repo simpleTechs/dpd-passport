@@ -13,6 +13,7 @@ var Resource = require('deployd/lib/resource'),
     GitHubStrategy = require('passport-github').Strategy,
     GoogleStrategy = require('passport-google-oauth').OAuth2Strategy,
     DribbbleStrategy = require('passport-dribbble').Strategy,
+    WeiboStrategy = require('passport-weibo').Strategy,
 
     // Globals
     DEFAULT_SALT_LEN = 256,
@@ -43,6 +44,7 @@ function AuthResource() {
     config.allowGitHub = config.allowGitHub && config.baseURL && config.githubClientId && config.githubClientSecret;
     config.allowGoogle = config.allowGoogle && config.baseURL && config.googleClientId && config.googleClientSecret;
     config.allowDribbble = config.allowDribbble && config.baseURL && config.dribbbbleClientId && config.dribbbbleClientSecret;
+    config.allowWeibo = config.allowWeibo && config.baseURL && config.weiboClientId && config.weiboClientSecret;
 }
 util.inherits(AuthResource, Resource);
 
@@ -211,6 +213,19 @@ AuthResource.prototype.initPassport = function() {
         ));
     }
 
+    if(config.allowWeibo) {
+        var cbURL = url.resolve(config.baseURL, this.path + '/weibo/' + CALLBACK_URL);
+
+        debug('Initializing Weibo Login, cb: %s', cbURL);
+        passport.use(new WeiboStrategy({
+            clientID: config.weiboClientId,
+            clientSecret: config.weiboClientSecret,
+            callbackURL: cbURL
+          },
+          socialAuthCallback
+        ));
+    }
+
     this.initialized = true;
 };
 
@@ -326,6 +341,11 @@ AuthResource.prototype.handle = function(ctx, next) {
         case 'dribbble':
             if(this.config.allowDribbble) {
                 requestedModule = 'dribbble';
+            }
+            break;
+        case 'weibo':
+            if(this.config.allowWeibo) {
+                requestedModule = 'weibo';
             }
             break;
         default:
@@ -454,6 +474,10 @@ AuthResource.basicDashboard = {
     name        : 'allowDribbble',
     type        : 'checkbox',
     description : 'Allow users to login via Dribbble'
+  },{
+    name        : 'allowWeibo',
+    type        : 'checkbox',
+    description : 'Allow users to login via Weibo'
   }, {
     name        : 'twitterConsumerKey',
     type        : 'text'/*,
@@ -501,6 +525,12 @@ AuthResource.basicDashboard = {
     type        : 'text'
   }, {
     name        : 'dribbbbleClientSecret',
+    type        : 'text'
+  } ,{
+    name        : 'weiboClientId',
+    type        : 'text'
+  }, {
+    name        : 'weiboClientSecret',
     type        : 'text'
   }]
 };
