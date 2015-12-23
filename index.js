@@ -165,6 +165,7 @@ AuthResource.prototype.initPassport = function() {
         passport.use(new FacebookStrategy({
             clientID: config.facebookAppId,
             clientSecret: config.facebookAppSecret,
+            profileFields: ['id', 'displayName', 'photos', 'emails'],
             callbackURL: cbURL
           },
           socialAuthCallback
