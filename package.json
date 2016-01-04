@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://bitbucket.org/simpletechs/dpd-passport.git"
+    "url": "https://bitbucket.org/simpletechs/dpd-passport"
   },
   "keywords": [
     "deployd",
@@ -19,23 +19,20 @@
     "github",
     "google",
     "twitter",
-    "dribbble",
-    "weibo"
+    "weibo",
+    "dribbble"
   ],
-  "author": {
-    "name": "Fabian Off, simpleTechs.net",
-    "email": "fabian@simpletechs.net"
-  },
+  "author": "Fabian Off, simpleTechs.net <fabian@simpletechs.net>",
   "license": "FreeBSD",
   "dependencies": {
-    "debug": "^0.7.4",
-    "passport": "^0.2.0",
-    "passport-dribbble": "^1.0.1",
-    "passport-facebook": "^1.0.3",
-    "passport-github": "^0.1.5",
-    "passport-google-oauth": "^0.1.5",
     "passport-local": "^1.0.0",
+    "passport": "^0.2.0",
+    "passport-facebook": "^1.0.3",
+    "passport-google-oauth": "^0.1.5",
     "passport-twitter": "^1.0.2",
+    "debug": "^0.7.4",
+    "passport-github": "^0.1.5",
+    "passport-dribbble": "^1.0.1",
     "passport-weibo": "^0.1.2"
   }
 }
