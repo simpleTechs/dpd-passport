@@ -112,3 +112,5 @@ The following people contributed some of there valuable spare time to make this 
 * [Andy](https://github.com/hongkongkiwi)
 * [Andrei](https://github.com/andreialecu)
 * [Burak](https://github.com/burakcan)
+* [Mathis](https://github.com/Maddis1337)
+* [Dave](https://github.com/flavordaaave)
